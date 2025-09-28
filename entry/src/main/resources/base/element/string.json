@@ -1,0 +1,20 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "代码编辑器模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "HarmonyOS代码编辑器"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "代码编辑器"
+    },
+    {
+      "name": "permission_reason",
+      "value": "需要访问文档权限来打开、编辑和保存代码文件"
+    }
+  ]
+}
