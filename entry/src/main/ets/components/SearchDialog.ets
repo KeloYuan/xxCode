@@ -96,7 +96,7 @@ export struct SearchDialog {
   }
 
   @Builder
-  buildSearchOptions() {
+  buildSearchOptions(): void {
     Column() {
       // 大小写敏感
       Row() {

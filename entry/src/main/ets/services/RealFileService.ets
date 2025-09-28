@@ -4,6 +4,29 @@ import { FileItem, EditorTab } from '../models/FileModel';
 import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 
+// 定义文件模型接口
+interface FileModelInterface {
+  getTabs(): EditorTab[];
+  getActiveTab(): EditorTab | null;
+}
+
+// 文件模型实现类
+class FileModelImpl implements FileModelInterface {
+  private service: RealFileService;
+
+  constructor(service: RealFileService) {
+    this.service = service;
+  }
+
+  getTabs(): EditorTab[] {
+    return this.service.getTabs();
+  }
+
+  getActiveTab(): EditorTab | null {
+    return this.service.getActiveTab();
+  }
+}
+
 export class RealFileService {
   private tabs: EditorTab[] = [];
   private context: common.UIAbilityContext | null = null;
@@ -57,8 +80,12 @@ export class RealFileService {
       fs.closeSync(file);
 
       // 将ArrayBuffer转换为字符串
-      const decoder = new TextDecoder('utf-8');
-      return decoder.decode(buffer);
+      const uint8Array = new Uint8Array(buffer);
+      let result = '';
+      for (let i = 0; i < uint8Array.length; i++) {
+        result += String.fromCharCode(uint8Array[i]);
+      }
+      return result;
     } catch (error) {
       console.error('读取文件失败:', error);
       throw new Error(`读取文件失败: ${error}`);
@@ -69,8 +96,14 @@ export class RealFileService {
   async writeFileContent(filePath: string, content: string): Promise<boolean> {
     try {
       const file = fs.openSync(filePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
-      const encoder = new TextEncoder();
-      const buffer = encoder.encode(content);
+      
+      // 将字符串转换为ArrayBuffer
+      const uint8Array = new Uint8Array(content.length);
+      for (let i = 0; i < content.length; i++) {
+        uint8Array[i] = content.charCodeAt(i);
+      }
+      const buffer = uint8Array.buffer;
+      
       fs.writeSync(file.fd, buffer);
       fs.closeSync(file);
       return true;
@@ -281,5 +314,10 @@ export class RealFileService {
       return this.context.cacheDir;
     }
     return '';
+  }
+
+  // 创建一个简单的文件模型对象来兼容原有接口
+  getFileModel(): FileModelInterface {
+    return new FileModelImpl(this);
   }
 }

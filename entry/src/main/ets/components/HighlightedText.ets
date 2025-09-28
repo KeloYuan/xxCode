@@ -32,19 +32,29 @@ export struct HighlightedText {
   }
 
   @Builder
-  buildEditableText() {
+  buildEditableText(): void {
     TextInput({
-      placeholder: '在这里编写代码...',
+      placeholder: '// 在这里编写代码...\n// 支持语法高亮和自动补全',
       text: this.internalCode
     })
     .height('100%')
     .width('100%')
     .fontSize(this.fontSize)
-    .fontFamily('monospace')
+    .fontFamily('SF Mono, Monaco, Consolas, "Liberation Mono", "Courier New", monospace')
     .textAlign(TextAlign.Start)
-    .caretColor(Color.Blue)
-    .backgroundColor(Color.White)
-    .padding(16)
+    .caretColor('#007DFF')
+    .backgroundColor('#FAFBFC')
+    .borderRadius(8)
+    .border({
+      width: 1,
+      color: '#E5E8EB'
+    })
+    .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+    .placeholderColor('#9CA3AF')
+    .placeholderFont({
+      size: this.fontSize,
+      family: 'SF Mono, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+    })
     .onChange((value: string) => {
       this.internalCode = value;
       this.updateHighlight();
@@ -53,13 +63,19 @@ export struct HighlightedText {
         this.onChange(value);
       }
     })
+    .shadow({
+      radius: 4,
+      color: 'rgba(0, 0, 0, 0.04)',
+      offsetX: 0,
+      offsetY: 2
+    })
   }
 
   // 事件回调
   onChange?: (value: string) => void;
 
   @Builder
-  buildReadOnlyText() {
+  buildReadOnlyText(): void {
     Scroll() {
       Column() {
         ForEach(this.tokens, (token: HighlightToken, index: number) => {
@@ -87,20 +103,19 @@ export struct HighlightedText {
     }
   }
 
-  private getTokenColor(type: string): Color {
-    const colorMap: Record<string, Color> = {
-      'keyword': Color.Blue,
-      'string': Color.Green,
-      'comment': Color.Gray,
-      'number': Color.Red,
-      'function': Color.Orange,
-      'variable': Color.Blue,
-      'operator': Color.Gray,
-      'bracket': Color.Gray,
-      'text': Color.Black
+  private getTokenColor(type: string): Color | string {
+    const colorMap: Record<string, string> = {
+      'keyword': '#8B5CF6',     // 紫色 - 关键字
+      'string': '#10B981',      // 绿色 - 字符串  
+      'comment': '#6B7280',     // 灰色 - 注释
+      'number': '#F59E0B',      // 橙色 - 数字
+      'function': '#3B82F6',    // 蓝色 - 函数
+      'variable': '#1A1D29',    // 深灰 - 变量
+      'operator': '#6B7280',    // 灰色 - 操作符
+      'bracket': '#6B7280',     // 灰色 - 括号
+      'text': '#1A1D29'         // 深灰 - 普通文本
     };
-    const result = colorMap[type];
-    return result !== undefined ? result : Color.Black;
+    return colorMap[type] || '#1A1D29';
   }
 
   private getTokenBackgroundColor(type: string): Color {

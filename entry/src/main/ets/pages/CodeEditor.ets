@@ -35,7 +35,7 @@ struct CodeEditor {
 
   aboutToAppear() {
     // 获取UIAbility的context
-    this.context = getContext(this) as common.UIAbilityContext;
+    this.context = this.getUIContext().getHostContext() as common.UIAbilityContext;
     this.fileService.setContext(this.context);
 
     this.setupThemeListener();
@@ -78,28 +78,28 @@ struct CodeEditor {
     Stack() {
       Column() {
         // 顶部工具栏
-        this.buildToolbar()
+        this.buildModernToolbar()
 
         // 标签页区域
         if (this.tabs.length > 0) {
-          this.buildTabBar()
+          this.buildModernTabBar()
         }
 
         // 主内容区域
         Row() {
           // 左侧文件树
           if (this.isFileTreeVisible) {
-            this.buildFileTree()
+            this.buildModernFileTree()
           }
 
           // 编辑器区域
-          this.buildEditorArea()
+          this.buildModernEditorArea()
         }
         .layoutWeight(1)
       }
       .height('100%')
       .width('100%')
-      .backgroundColor(Color.White)
+      .backgroundColor($r('app.color.background_secondary'))
 
       // 搜索对话框
       if (this.showSearchDialog) {
@@ -123,6 +123,157 @@ struct CodeEditor {
     this.files = [];
     this.tabs = [];
     this.isLoading = false;
+  }
+
+  @Builder
+  buildModernToolbar(): void {
+    Column() {
+      // 主工具栏
+      Row() {
+        // 左侧按钮组
+        Row() {
+          // 文件操作按钮
+          this.buildToolbarButton('📁', '打开', (): void => { this.openFileDialog(); })
+          Blank().width(8)
+          this.buildToolbarButton('💾', '保存', (): void => { this.saveCurrentFile(); }, !!this.activeTab)
+          Blank().width(8)
+          this.buildToolbarButton('📄', '新建', (): void => { this.createNewFileDialog(); })
+
+          // 分隔线
+          Divider()
+            .vertical(true)
+            .width(1)
+            .height(24)
+            .color($r('app.color.border_light'))
+            .margin({ left: 16, right: 16 })
+
+          // 预览模式切换（仅对Markdown文件显示）
+          if (this.isMarkdownFile) {
+            this.buildToggleButton(
+              this.isPreviewMode ? '编辑' : '预览',
+              this.isPreviewMode,
+              (): void => { this.togglePreviewMode(); }
+            )
+            Blank().width(8)
+          }
+        }
+        .alignItems(VerticalAlign.Center)
+
+        // 占位符，推送右侧内容
+        Blank().layoutWeight(1)
+
+        // 右侧功能按钮区域
+        Row() {
+          // 搜索按钮
+          this.buildIconButton('🔍', (): void => { this.showSearchDialog = true; })
+          Blank().width(8)
+
+          // 主题切换按钮
+          this.buildIconButton('🎨', (): void => { this.showThemeMenu(); })
+          Blank().width(8)
+
+          // 文件树切换按钮
+          this.buildIconButton(
+            this.isFileTreeVisible ? '📋' : '📂',
+            (): void => { this.isFileTreeVisible = !this.isFileTreeVisible; },
+            this.isFileTreeVisible
+          )
+        }
+        .alignItems(VerticalAlign.Center)
+      }
+      .padding({ left: 20, right: 20, top: 16, bottom: 16 })
+      .backgroundColor($r('app.color.surface_elevated'))
+
+      // 细分隔线
+      Divider()
+        .color($r('app.color.border_light'))
+        .strokeWidth(0.5)
+    }
+    .shadow({
+      radius: 4,
+      color: 'rgba(0, 0, 0, 0.08)',
+      offsetX: 0,
+      offsetY: 2
+    })
+  }
+
+  @Builder
+  buildToolbarButton(icon: string, text: string, action: () => void, enabled: boolean = true): void {
+    Button({ type: ButtonType.Normal, stateEffect: true }) {
+      Row() {
+        Text(icon)
+          .fontSize(16)
+          .margin({ right: 6 })
+
+        Text(text)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+      }
+      .alignItems(VerticalAlign.Center)
+    }
+    .backgroundColor(enabled ? $r('app.color.background_primary') : $r('app.color.background_tertiary'))
+    .fontColor(enabled ? $r('app.color.text_primary') : $r('app.color.text_tertiary'))
+    .borderRadius(8)
+    .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+    .border({
+      width: 1,
+      color: $r('app.color.border_light')
+    })
+    .enabled(enabled)
+    .onClick(action)
+    .shadow({
+      radius: 2,
+      color: 'rgba(0, 0, 0, 0.04)',
+      offsetX: 0,
+      offsetY: 1
+    })
+  }
+
+  @Builder
+  buildToggleButton(text: string, isActive: boolean, action: () => void): void {
+    Button({ type: ButtonType.Normal, stateEffect: true }) {
+      Text(text)
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+    }
+    .backgroundColor(isActive ? $r('app.color.primary_brand') : $r('app.color.background_primary'))
+    .fontColor(isActive ? Color.White : $r('app.color.text_primary'))
+    .borderRadius(8)
+    .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+    .border({
+      width: 1,
+      color: isActive ? $r('app.color.primary_brand') : $r('app.color.border_light')
+    })
+    .onClick(action)
+    .shadow({
+      radius: isActive ? 4 : 2,
+      color: isActive ? 'rgba(0, 125, 255, 0.3)' : 'rgba(0, 0, 0, 0.04)',
+      offsetX: 0,
+      offsetY: isActive ? 2 : 1
+    })
+  }
+
+  @Builder
+  buildIconButton(icon: string, action: () => void, isActive: boolean = false): void {
+    Button({ type: ButtonType.Circle, stateEffect: true }) {
+      Text(icon)
+        .fontSize(16)
+    }
+    .backgroundColor(isActive ? $r('app.color.primary_brand') : $r('app.color.background_primary'))
+    .fontColor(isActive ? Color.White : $r('app.color.text_primary'))
+    .width(40)
+    .height(40)
+    .border({
+      width: 1,
+      color: isActive ? $r('app.color.primary_brand') : $r('app.color.border_light')
+    })
+    .onClick(action)
+    .shadow({
+      radius: isActive ? 4 : 2,
+      color: isActive ? 'rgba(0, 125, 255, 0.3)' : 'rgba(0, 0, 0, 0.04)',
+      offsetX: 0,
+      offsetY: isActive ? 2 : 1
+    })
   }
 
   @Builder
@@ -314,7 +465,104 @@ struct CodeEditor {
   }
 
   @Builder
-  buildTabBar() {
+  buildModernTabBar(): void {
+    Column() {
+      Scroll() {
+        Row() {
+          ForEach(this.tabs, (tab: EditorTab) => {
+            this.buildModernTab(tab)
+          })
+          
+          // 添加新标签按钮
+          Button({ type: ButtonType.Circle, stateEffect: true }) {
+            Text('+')
+              .fontSize(18)
+              .fontWeight(FontWeight.Medium)
+          }
+          .backgroundColor($r('app.color.background_primary'))
+          .fontColor($r('app.color.text_secondary'))
+          .width(32)
+          .height(32)
+          .border({
+            width: 1,
+            color: $r('app.color.border_light')
+          })
+          .margin({ left: 8 })
+          .onClick(() => this.createNewFileDialog())
+        }
+        .padding({ left: 16, right: 16 })
+      }
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .height(48)
+      .backgroundColor($r('app.color.surface_elevated'))
+
+      Divider()
+        .color($r('app.color.border_light'))
+        .strokeWidth(0.5)
+    }
+  }
+
+  @Builder
+  buildModernTab(tab: EditorTab): void {
+    Row() {
+      // 文件类型图标
+      Text(this.getFileTypeIcon(tab.fileName))
+        .fontSize(14)
+        .margin({ right: 8 })
+
+      // 文件名
+      Text(tab.fileName)
+        .fontSize(13)
+        .fontColor(tab.isActive ? $r('app.color.primary_brand') : $r('app.color.text_primary'))
+        .fontWeight(tab.isActive ? FontWeight.Medium : FontWeight.Normal)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .layoutWeight(1)
+
+      // 修改状态指示器
+      if (tab.isModified) {
+        Circle()
+          .width(6)
+          .height(6)
+          .fill($r('app.color.warning_color'))
+          .margin({ left: 4, right: 4 })
+      }
+
+      // 关闭按钮
+      Button({ type: ButtonType.Circle, stateEffect: true }) {
+        Text('×')
+          .fontSize(14)
+          .fontColor($r('app.color.text_secondary'))
+      }
+      .backgroundColor(Color.Transparent)
+      .width(20)
+      .height(20)
+      .onClick(() => this.closeTab(tab.id))
+    }
+    .padding({ left: 12, right: 8, top: 8, bottom: 8 })
+    .backgroundColor(tab.isActive ? $r('app.color.background_primary') : Color.Transparent)
+    .borderRadius({ topLeft: 8, topRight: 8 })
+    .border({
+      width: { left: 1, right: 1, top: 1, bottom: tab.isActive ? 0 : 1 },
+      color: tab.isActive ? $r('app.color.border_light') : Color.Transparent
+    })
+    .margin({ right: 2 })
+    .constraintSize({
+      minWidth: 120,
+      maxWidth: 200
+    })
+    .onClick(() => this.switchToTab(tab.id))
+    .shadow({
+      radius: tab.isActive ? 4 : 0,
+      color: 'rgba(0, 0, 0, 0.08)',
+      offsetX: 0,
+      offsetY: tab.isActive ? -2 : 0
+    })
+  }
+
+  @Builder
+  buildTabBar(): void {
     Scroll() {
       Row() {
         ForEach(this.tabs, (tab: EditorTab) => {
@@ -366,7 +614,244 @@ struct CodeEditor {
   }
 
   @Builder
-  buildFileTree() {
+  buildModernFileTree(): void {
+    Column() {
+      // 文件树头部
+      Row() {
+        Text('文件管理器')
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+          .layoutWeight(1)
+
+        Row() {
+          Button({ type: ButtonType.Circle, stateEffect: true }) {
+            Text('📁')
+              .fontSize(14)
+          }
+          .backgroundColor($r('app.color.background_primary'))
+          .fontColor($r('app.color.text_secondary'))
+          .width(32)
+          .height(32)
+          .border({
+            width: 1,
+            color: $r('app.color.border_light')
+          })
+          .onClick(() => this.openFileDialog())
+
+          Blank().width(8)
+
+          Button({ type: ButtonType.Circle, stateEffect: true }) {
+            Text('📄')
+              .fontSize(14)
+          }
+          .backgroundColor($r('app.color.background_primary'))
+          .fontColor($r('app.color.text_secondary'))
+          .width(32)
+          .height(32)
+          .border({
+            width: 1,
+            color: $r('app.color.border_light')
+          })
+          .onClick(() => this.createNewFileDialog())
+        }
+      }
+      .padding({ left: 20, right: 20, top: 16, bottom: 16 })
+      .backgroundColor($r('app.color.surface_elevated'))
+
+      Divider()
+        .color($r('app.color.border_light'))
+        .strokeWidth(0.5)
+
+      // 打开的文件标签页列表
+      if (this.tabs.length === 0) {
+        this.buildEmptyState()
+      } else {
+        // 显示已打开的文件列表
+        Scroll() {
+          Column() {
+            Text('已打开的文件')
+              .fontSize(14)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_secondary'))
+              .alignSelf(ItemAlign.Start)
+              .margin({ left: 20, right: 20, top: 16, bottom: 12 })
+
+            ForEach(this.tabs, (tab: EditorTab) => {
+              this.buildModernFileTabItem(tab)
+            })
+          }
+          .padding({ bottom: 16 })
+        }
+        .layoutWeight(1)
+      }
+    }
+    .width(300)
+    .height('100%')
+    .backgroundColor($r('app.color.surface_elevated'))
+    .border({ width: { right: 1 }, color: $r('app.color.border_light') })
+    .shadow({
+      radius: 8,
+      color: 'rgba(0, 0, 0, 0.06)',
+      offsetX: 2,
+      offsetY: 0
+    })
+  }
+
+  @Builder
+  buildEmptyState(): void {
+    Column() {
+      // 大图标
+      Stack() {
+        Circle()
+          .width(80)
+          .height(80)
+          .fill($r('app.color.background_tertiary'))
+
+        Text('📂')
+          .fontSize(36)
+      }
+      .margin({ bottom: 20 })
+
+      Text('没有打开的文件')
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.text_primary'))
+        .margin({ bottom: 8 })
+
+      Text('点击下方按钮开始编辑')
+        .fontSize(14)
+        .fontColor($r('app.color.text_secondary'))
+        .margin({ bottom: 24 })
+
+      Column() {
+        Button({ type: ButtonType.Normal, stateEffect: true }) {
+          Row() {
+            Text('📁')
+              .fontSize(16)
+              .margin({ right: 8 })
+
+            Text('打开文件')
+              .fontSize(14)
+              .fontWeight(FontWeight.Medium)
+          }
+        }
+        .backgroundColor($r('app.color.primary_brand'))
+        .fontColor(Color.White)
+        .borderRadius(10)
+        .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+        .margin({ bottom: 12 })
+        .onClick(() => this.openFileDialog())
+        .shadow({
+          radius: 8,
+          color: 'rgba(0, 125, 255, 0.3)',
+          offsetX: 0,
+          offsetY: 4
+        })
+
+        Button({ type: ButtonType.Normal, stateEffect: true }) {
+          Row() {
+            Text('📄')
+              .fontSize(16)
+              .margin({ right: 8 })
+
+            Text('新建文件')
+              .fontSize(14)
+          }
+        }
+        .backgroundColor($r('app.color.background_primary'))
+        .fontColor($r('app.color.text_primary'))
+        .borderRadius(10)
+        .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+        .border({
+          width: 1,
+          color: $r('app.color.border_light')
+        })
+        .onClick(() => this.createNewFileDialog())
+      }
+    }
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .layoutWeight(1)
+    .padding(32)
+  }
+
+  @Builder
+  buildModernFileTabItem(tab: EditorTab): void {
+    Row() {
+      // 状态指示器
+      Circle()
+        .width(4)
+        .height(4)
+        .fill(tab.isActive ? $r('app.color.primary_brand') : Color.Transparent)
+        .margin({ right: 12 })
+
+      // 文件类型图标
+      Text(this.getFileTypeIcon(tab.fileName))
+        .fontSize(16)
+        .margin({ right: 12 })
+
+      // 文件信息
+      Column() {
+        Text(tab.fileName)
+          .fontSize(14)
+          .fontColor(tab.isActive ? $r('app.color.primary_brand') : $r('app.color.text_primary'))
+          .fontWeight(tab.isActive ? FontWeight.Medium : FontWeight.Normal)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .alignSelf(ItemAlign.Start)
+
+        Text(this.getShortPath(tab.filePath))
+          .fontSize(12)
+          .fontColor($r('app.color.text_tertiary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .margin({ top: 2 })
+          .alignSelf(ItemAlign.Start)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      // 修改状态和操作
+      Row() {
+        if (tab.isModified) {
+          Circle()
+            .width(6)
+            .height(6)
+            .fill($r('app.color.warning_color'))
+            .margin({ right: 8 })
+        }
+
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          Text('×')
+            .fontSize(14)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        .backgroundColor(Color.Transparent)
+        .width(24)
+        .height(24)
+        .onClick(() => this.closeTab(tab.id))
+      }
+    }
+    .padding({ left: 16, right: 12, top: 12, bottom: 12 })
+    .backgroundColor(tab.isActive ? $r('app.color.background_primary') : Color.Transparent)
+    .borderRadius(8)
+    .margin({ left: 12, right: 12, bottom: 4 })
+    .onClick(() => this.switchToTab(tab.id))
+    .border({
+      width: tab.isActive ? 1 : 0,
+      color: $r('app.color.border_light')
+    })
+    .shadow({
+      radius: tab.isActive ? 4 : 0,
+      color: 'rgba(0, 0, 0, 0.06)',
+      offsetX: 0,
+      offsetY: tab.isActive ? 2 : 0
+    })
+  }
+
+  @Builder
+  buildFileTree(): void {
     Column() {
       // 文件树头部
       Row() {
@@ -449,7 +934,7 @@ struct CodeEditor {
   }
 
   @Builder
-  buildFileTabItem(tab: EditorTab) {
+  buildFileTabItem(tab: EditorTab): void {
     Row() {
       // 文件类型图标
       Text(this.getFileTypeIcon(tab.fileName))
@@ -506,7 +991,7 @@ struct CodeEditor {
   }
 
   @Builder
-  buildFileItem(item: FileItem, level: number) {
+  buildFileItem(item: FileItem, level: number): void {
     Column() {
       // 文件项
       Row() {
@@ -596,6 +1081,15 @@ struct CodeEditor {
     }
   }
 
+  @Builder
+  buildFileList(items: FileItem[], level: number): void {
+    Column() {
+      ForEach(items, (item: FileItem) => {
+        this.buildFileItem(item, level)
+      })
+    }
+  }
+
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -605,7 +1099,227 @@ struct CodeEditor {
   }
 
   @Builder
-  buildEditorArea() {
+  buildModernEditorArea(): void {
+    Column() {
+      // 编辑器状态栏
+      Row() {
+        // 左侧信息
+        Row() {
+          if (this.activeTab) {
+            Text(this.getFileTypeIcon(this.activeTab.fileName))
+              .fontSize(16)
+              .margin({ right: 8 })
+
+            Text(this.activeTab.fileName)
+              .fontSize(14)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_primary'))
+              .margin({ right: 16 })
+
+            if (this.activeTab.isModified) {
+              Row() {
+                Circle()
+                  .width(6)
+                  .height(6)
+                  .fill($r('app.color.warning_color'))
+                  .margin({ right: 6 })
+
+                Text('未保存')
+                  .fontSize(12)
+                  .fontColor($r('app.color.warning_color'))
+              }
+              .margin({ right: 16 })
+            }
+          } else {
+            Text('未选择文件')
+              .fontSize(14)
+              .fontColor($r('app.color.text_secondary'))
+          }
+        }
+        .alignItems(VerticalAlign.Center)
+
+        Blank().layoutWeight(1)
+
+        // 右侧状态信息
+        Row() {
+          if (this.isMarkdownFile) {
+            Text(this.isPreviewMode ? '预览模式' : '编辑模式')
+              .fontSize(12)
+              .fontColor($r('app.color.primary_brand'))
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .backgroundColor($r('app.color.background_tertiary'))
+              .borderRadius(4)
+              .margin({ right: 12 })
+          }
+
+          Text(this.getStatusText())
+            .fontSize(12)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        .alignItems(VerticalAlign.Center)
+      }
+      .padding({ left: 20, right: 20, top: 12, bottom: 12 })
+      .backgroundColor($r('app.color.surface_elevated'))
+      .border({ width: { bottom: 1 }, color: $r('app.color.border_light') })
+
+      // 编辑器内容区域
+      if (!this.activeTab) {
+        this.buildEditorWelcome()
+      } else if (this.isMarkdownFile && this.isPreviewMode) {
+        // Markdown预览模式
+        this.buildModernMarkdownPreview()
+      } else {
+        // 普通编辑模式
+        this.buildModernTextEditor()
+      }
+    }
+    .layoutWeight(1)
+    .height('100%')
+    .backgroundColor($r('app.color.background_primary'))
+    .borderRadius({ topLeft: 12, topRight: 12 })
+    .shadow({
+      radius: 8,
+      color: 'rgba(0, 0, 0, 0.08)',
+      offsetX: 0,
+      offsetY: -2
+    })
+  }
+
+  @Builder
+  buildEditorWelcome(): void {
+    Column() {
+      // 欢迎图标
+      Stack() {
+        Circle()
+          .width(100)
+          .height(100)
+          .fill($r('app.color.background_tertiary'))
+
+        Text('{ }')
+          .fontSize(40)
+          .fontColor($r('app.color.primary_brand'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .margin({ bottom: 24 })
+
+      Text('鸿蒙代码编辑器')
+        .fontSize(24)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.text_primary'))
+        .margin({ bottom: 8 })
+
+      Text('选择或创建一个文件开始编码')
+        .fontSize(16)
+        .fontColor($r('app.color.text_secondary'))
+        .margin({ bottom: 32 })
+
+      // 快速操作
+      Column() {
+        Button({ type: ButtonType.Normal, stateEffect: true }) {
+          Row() {
+            Text('📁')
+              .fontSize(18)
+              .margin({ right: 12 })
+
+            Text('打开文件')
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
+          }
+        }
+        .backgroundColor($r('app.color.primary_brand'))
+        .fontColor(Color.White)
+        .borderRadius(12)
+        .padding({ left: 24, right: 24, top: 16, bottom: 16 })
+        .margin({ bottom: 16 })
+        .onClick(() => this.openFileDialog())
+        .shadow({
+          radius: 12,
+          color: 'rgba(0, 125, 255, 0.4)',
+          offsetX: 0,
+          offsetY: 6
+        })
+
+        Button({ type: ButtonType.Normal, stateEffect: true }) {
+          Row() {
+            Text('📄')
+              .fontSize(18)
+              .margin({ right: 12 })
+
+            Text('新建文件')
+              .fontSize(16)
+          }
+        }
+        .backgroundColor($r('app.color.background_primary'))
+        .fontColor($r('app.color.text_primary'))
+        .borderRadius(12)
+        .padding({ left: 24, right: 24, top: 16, bottom: 16 })
+        .border({
+          width: 1,
+          color: $r('app.color.border_light')
+        })
+        .onClick(() => this.createNewFileDialog())
+        .shadow({
+          radius: 4,
+          color: 'rgba(0, 0, 0, 0.06)',
+          offsetX: 0,
+          offsetY: 2
+        })
+      }
+    }
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .layoutWeight(1)
+    .padding(48)
+  }
+
+  @Builder
+  buildModernTextEditor(): void {
+    Stack() {
+      // 编辑器背景
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.editor_background'))
+
+      HighlightedText({
+        code: this.editorContent,
+        language: this.activeTab?.language || 'javascript',
+        fontSize: 14,
+        editable: true,
+        onChange: (value: string) => {
+          this.handleContentChange(value);
+        }
+      })
+      .width('100%')
+      .height('100%')
+      .padding(20)
+      .id('highlightedText')
+    }
+    .layoutWeight(1)
+  }
+
+  @Builder
+  buildModernMarkdownPreview(): void {
+    Stack() {
+      // 预览背景
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.background_primary'))
+
+      MarkdownPreview({
+        markdown: this.editorContent,
+        fontSize: 14
+      })
+      .width('100%')
+      .height('100%')
+      .padding(20)
+    }
+    .layoutWeight(1)
+  }
+
+  @Builder
+  buildEditorArea(): void {
     Column() {
       // 编辑器工具栏
       Row() {
@@ -646,7 +1360,7 @@ struct CodeEditor {
   }
 
   @Builder
-  buildTextEditor() {
+  buildTextEditor(): void {
     HighlightedText({
       code: this.editorContent,
       language: this.activeTab?.language || 'javascript',
@@ -660,11 +1374,10 @@ struct CodeEditor {
     .width('100%')
     .borderRadius(8)
     .margin(16)
-    .id('highlightedText')
   }
 
   @Builder
-  buildMarkdownPreview() {
+  buildMarkdownPreview(): void {
     MarkdownPreview({
       markdown: this.editorContent,
       fontSize: 14
@@ -789,6 +1502,15 @@ struct CodeEditor {
       await this.themeService.saveThemePreference(themeId);
     } catch (error) {
       console.error('保存主题设置失败:', error);
+    }
+  }
+
+  // 打开文件方法
+  async openFile(filePath: string) {
+    try {
+      await this.openRealFile(filePath);
+    } catch (error) {
+      console.error('打开文件失败:', error);
     }
   }
 
