@@ -1,4 +1,5 @@
 import router from '@ohos.router';
+import { NavigationTitleMode } from '@kit.ArkUI';
 
 @Entry
 @Component
@@ -14,193 +15,209 @@ struct Index {
   }
 
   build() {
-    Stack() {
-      // 渐变背景
-      Column()
-        .width('100%')
-        .height('100%')
-        .linearGradient({
-          angle: 135,
-          colors: [
-            ['#F0F9FF', 0.0],
-            ['#E0F2FE', 0.3],
-            ['#BAE6FD', 0.7],
-            ['#7DD3FC', 1.0]
-          ]
-        })
+    Navigation() {
+      Stack() {
+        this.buildGradientBackground()
+        this.buildLandingContent()
 
-      // 主要内容
-      Column() {
-        // Logo 区域
-        Column() {
-          // 应用图标
-          Stack() {
-            Circle()
-              .width(120)
-              .height(120)
-              .fill($r('app.color.primary_brand'))
-              .shadow({
-                radius: 20,
-                color: 'rgba(0, 125, 255, 0.3)',
-                offsetX: 0,
-                offsetY: 8
-              })
+        if (this.isLoading) {
+          Column() {
+            LoadingProgress()
+              .width(48)
+              .height(48)
+              .color($r('app.color.primary_brand'))
+              .margin({ bottom: 16 })
 
-            Text('{ }')
-              .fontSize(48)
-              .fontColor(Color.White)
-              .fontWeight(FontWeight.Bold)
-              .fontFamily('SF Pro Display, -apple-system, system-ui')
+            Text('正在启动编辑器...')
+              .fontSize(16)
+              .fontColor($r('app.color.text_secondary'))
           }
-          .margin({ bottom: 32 })
-          .scale({ x: this.showWelcome ? 1 : 0.8, y: this.showWelcome ? 1 : 0.8 })
-          .opacity(this.showWelcome ? 1 : 0)
-          .animation({
-            duration: 800,
-            curve: Curve.EaseInOut,
-            playMode: PlayMode.Normal
-          })
-
-          // 应用标题
-          Text('鸿蒙代码编辑器')
-            .fontSize(36)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-            .fontFamily('PingFang SC, Microsoft YaHei')
-            .margin({ bottom: 12 })
-            .scale({ x: this.showWelcome ? 1 : 0.9, y: this.showWelcome ? 1 : 0.9 })
-            .opacity(this.showWelcome ? 1 : 0)
-            .animation({
-              duration: 800,
-              curve: Curve.EaseInOut,
-              delay: 200,
-              playMode: PlayMode.Normal
-            })
-
-          // 副标题
-          Text('专业的原生代码编辑体验')
-            .fontSize(18)
-            .fontColor($r('app.color.text_secondary'))
-            .fontFamily('PingFang SC, Microsoft YaHei')
-            .margin({ bottom: 48 })
-            .opacity(this.showWelcome ? 1 : 0)
-            .animation({
-              duration: 800,
-              curve: Curve.EaseInOut,
-              delay: 400,
-              playMode: PlayMode.Normal
-            })
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .width('100%')
+          .height('100%')
+          .backgroundColor('rgba(255, 255, 255, 0.9)')
         }
-        .justifyContent(FlexAlign.Center)
-        .layoutWeight(1)
-
-        // 功能特性卡片
-        this.buildFeatureCards()
-
-        // 开始按钮区域
-        Column() {
-          Button({ type: ButtonType.Normal, stateEffect: true }) {
-            Row() {
-              Text('🚀')
-                .fontSize(20)
-                .margin({ right: 12 })
-
-              Text('开始编码')
-                .fontSize(18)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(Color.White)
-            }
-            .justifyContent(FlexAlign.Center)
-            .alignItems(VerticalAlign.Center)
-          }
-          .width(280)
-          .height(56)
-          .backgroundColor($r('app.color.primary_brand'))
-          .borderRadius(28)
-          .shadow({
-            radius: 16,
-            color: 'rgba(0, 125, 255, 0.4)',
-            offsetX: 0,
-            offsetY: 8
-          })
-          .margin({ bottom: 16 })
-          .scale({ x: this.showWelcome ? 1 : 0.95, y: this.showWelcome ? 1 : 0.95 })
-          .opacity(this.showWelcome ? 1 : 0)
-          .animation({
-            duration: 800,
-            curve: Curve.EaseInOut,
-            delay: 800,
-            playMode: PlayMode.Normal
-          })
-          .onClick(() => {
-            this.navigateToEditor();
-          })
-
-          // 次要按钮
-          Button({ type: ButtonType.Normal, stateEffect: true }) {
-            Row() {
-              Text('📚')
-                .fontSize(16)
-                .margin({ right: 8 })
-
-              Text('查看功能')
-                .fontSize(16)
-                .fontColor($r('app.color.primary_brand'))
-            }
-            .justifyContent(FlexAlign.Center)
-            .alignItems(VerticalAlign.Center)
-          }
-          .width(200)
-          .height(48)
-          .backgroundColor($r('app.color.background_primary'))
-          .borderRadius(24)
-          .border({
-            width: 1,
-            color: $r('app.color.border_light')
-          })
-          .margin({ bottom: 32 })
-          .scale({ x: this.showWelcome ? 1 : 0.95, y: this.showWelcome ? 1 : 0.95 })
-          .opacity(this.showWelcome ? 1 : 0)
-          .animation({
-            duration: 800,
-            curve: Curve.EaseInOut,
-            delay: 900,
-            playMode: PlayMode.Normal
-          })
-          .onClick(() => {
-            // 显示功能介绍
-            this.showFeatureIntro();
-          })
-        }
-        .padding({ bottom: 48 })
       }
-      .padding({ left: 24, right: 24, top: 60 })
       .width('100%')
       .height('100%')
-      .justifyContent(FlexAlign.SpaceBetween)
+      .backgroundColor($r('app.color.background_secondary'))
+    }
+    .title($r('app.string.index_page_title'))
+    .titleMode(NavigationTitleMode.Mini)
+  }
 
-      // 加载指示器
-      if (this.isLoading) {
-        Column() {
-          LoadingProgress()
-            .width(48)
-            .height(48)
-            .color($r('app.color.primary_brand'))
-            .margin({ bottom: 16 })
+  @Builder
+  private buildGradientBackground(): void {
+    Column()
+      .width('100%')
+      .height('100%')
+      .linearGradient({
+        angle: 135,
+        colors: [
+          ['#F0F9FF', 0.0],
+          ['#E0F2FE', 0.3],
+          ['#BAE6FD', 0.7],
+          ['#7DD3FC', 1.0]
+        ]
+      })
+  }
 
-          Text('正在启动编辑器...')
-            .fontSize(16)
-            .fontColor($r('app.color.text_secondary'))
-        }
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .width('100%')
-        .height('100%')
-        .backgroundColor('rgba(255, 255, 255, 0.9)')
+  @Builder
+  private buildLandingContent(): void {
+    Scroll() {
+      Column() {
+        this.buildHeroSection()
+        this.buildFeatureCards()
+        this.buildCallToAction()
       }
+      .padding({ left: 24, right: 24, top: 60, bottom: 60 })
+      .width('100%')
+      .maxWidth(780)
+      .alignSelf(ItemAlign.Center)
     }
     .width('100%')
     .height('100%')
+  }
+
+  @Builder
+  private buildHeroSection(): void {
+    Column() {
+      Stack() {
+        Circle()
+          .width(120)
+          .height(120)
+          .fill($r('app.color.primary_brand'))
+          .shadow({
+            radius: 20,
+            color: 'rgba(0, 125, 255, 0.3)',
+            offsetX: 0,
+            offsetY: 8
+          })
+
+        Text('{ }')
+          .fontSize(48)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
+          .fontFamily('SF Pro Display, -apple-system, system-ui')
+      }
+      .margin({ bottom: 32 })
+      .scale({ x: this.showWelcome ? 1 : 0.8, y: this.showWelcome ? 1 : 0.8 })
+      .opacity(this.showWelcome ? 1 : 0)
+      .animation({
+        duration: 800,
+        curve: Curve.EaseInOut,
+        playMode: PlayMode.Normal
+      })
+
+      Text('鸿蒙代码编辑器')
+        .fontSize(36)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.text_primary'))
+        .fontFamily('PingFang SC, Microsoft YaHei')
+        .margin({ bottom: 12 })
+        .scale({ x: this.showWelcome ? 1 : 0.9, y: this.showWelcome ? 1 : 0.9 })
+        .opacity(this.showWelcome ? 1 : 0)
+        .animation({
+          duration: 800,
+          curve: Curve.EaseInOut,
+          delay: 200,
+          playMode: PlayMode.Normal
+        })
+
+      Text('专业的原生代码编辑体验')
+        .fontSize(18)
+        .fontColor($r('app.color.text_secondary'))
+        .fontFamily('PingFang SC, Microsoft YaHei')
+        .margin({ bottom: 48 })
+        .opacity(this.showWelcome ? 1 : 0)
+        .animation({
+          duration: 800,
+          curve: Curve.EaseInOut,
+          delay: 400,
+          playMode: PlayMode.Normal
+        })
+    }
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder
+  private buildCallToAction(): void {
+    Column() {
+      Button({ type: ButtonType.Capsule, stateEffect: true }) {
+        Row() {
+          Text('🚀')
+            .fontSize(20)
+            .margin({ right: 12 })
+
+          Text('开始编码')
+            .fontSize(18)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(Color.White)
+        }
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+      }
+      .width(280)
+      .height(56)
+      .backgroundColor($r('app.color.primary_brand'))
+      .shadow({
+        radius: 16,
+        color: 'rgba(0, 125, 255, 0.4)',
+        offsetX: 0,
+        offsetY: 8
+      })
+      .margin({ bottom: 16 })
+      .scale({ x: this.showWelcome ? 1 : 0.95, y: this.showWelcome ? 1 : 0.95 })
+      .opacity(this.showWelcome ? 1 : 0)
+      .animation({
+        duration: 800,
+        curve: Curve.EaseInOut,
+        delay: 800,
+        playMode: PlayMode.Normal
+      })
+      .accessibilityText('开始编码按钮')
+      .onClick(() => {
+        this.navigateToEditor();
+      })
+
+      Button({ type: ButtonType.Capsule, stateEffect: true }) {
+        Row() {
+          Text('📚')
+            .fontSize(16)
+            .margin({ right: 8 })
+
+          Text('查看功能')
+            .fontSize(16)
+            .fontColor($r('app.color.primary_brand'))
+        }
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+      }
+      .width(200)
+      .height(48)
+      .backgroundColor($r('app.color.background_primary'))
+      .border({
+        width: 1,
+        color: $r('app.color.border_light')
+      })
+      .borderRadius(24)
+      .scale({ x: this.showWelcome ? 1 : 0.95, y: this.showWelcome ? 1 : 0.95 })
+      .opacity(this.showWelcome ? 1 : 0)
+      .animation({
+        duration: 800,
+        curve: Curve.EaseInOut,
+        delay: 900,
+        playMode: PlayMode.Normal
+      })
+      .accessibilityText('查看功能按钮')
+      .onClick(() => {
+        this.showFeatureIntro();
+      })
+    }
+    .alignItems(HorizontalAlign.Center)
+    .padding({ bottom: 48 })
   }
 
   @Builder

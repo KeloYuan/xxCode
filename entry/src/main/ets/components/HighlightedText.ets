@@ -1,4 +1,5 @@
 import { SyntaxHighlightService, HighlightToken } from '../services/SyntaxHighlightService';
+import { CodeCompletionService, CompletionSuggestion } from '../services/CodeCompletionService';
 
 @Component
 export struct HighlightedText {
@@ -8,9 +9,14 @@ export struct HighlightedText {
   @Prop editable: boolean = false;
 
   @State internalCode: string = '';
+  @State suggestions: CompletionSuggestion[] = [];
+  @State showSuggestions: boolean = false;
+  @State currentWord: string = '';
 
   private highlightService: SyntaxHighlightService = new SyntaxHighlightService();
   @State tokens: HighlightToken[] = [];
+
+  private completionService: CodeCompletionService = CodeCompletionService.getInstance();
 
   aboutToAppear() {
     this.internalCode = this.code;
@@ -18,7 +24,7 @@ export struct HighlightedText {
   }
 
   build() {
-    Column() {
+    Stack() {
       if (this.editable) {
         // 可编辑模式
         this.buildEditableText()
@@ -26,6 +32,7 @@ export struct HighlightedText {
         // 只读模式
         this.buildReadOnlyText()
       }
+      this.buildSuggestionList()
     }
     .width('100%')
     .height('100%')
@@ -101,6 +108,77 @@ export struct HighlightedText {
     } else {
       this.tokens = [];
     }
+  }
+
+  private handleInputChange(value: string, caretPosition: number) {
+    this.internalCode = value;
+    this.updateHighlight();
+    
+    // Get current word at caret
+    const beforeCaret = value.substring(0, caretPosition);
+    const wordMatch = beforeCaret.match(/\w*$/);
+    if (wordMatch) {
+      this.currentWord = wordMatch[0];
+      if (this.currentWord.length > 0) {
+        this.getSuggestions(this.currentWord, beforeCaret);
+      } else {
+        this.suggestions = [];
+        this.showSuggestions = false;
+      }
+    }
+    
+    if (this.onChange) {
+      this.onChange(value);
+    }
+  }
+
+  private async getSuggestions(prefix: string, context: string) {
+    try {
+      this.suggestions = await this.completionService.getSuggestions(this.language, prefix, context);
+      this.showSuggestions = this.suggestions.length > 0;
+    } catch (error) {
+      console.error('Failed to get suggestions:', error);
+      this.showSuggestions = false;
+    }
+  }
+
+  @Builder
+  buildSuggestionList() {
+    if (!this.showSuggestions) return;
+    
+    List({ space: 4 }) {
+      ForEach(this.suggestions, (item: CompletionSuggestion) => {
+        ListItem() {
+          Row() {
+            Text(item.text)
+              .fontSize(14)
+              .fontWeight(FontWeight.Medium)
+            Blank()
+            Text(item.description || '')
+              .fontSize(12)
+              .fontColor(Color.Gray)
+          }
+          .padding(8)
+        }
+        .onClick(() => {
+          this.insertSuggestion(item.text);
+        })
+      }, item => item.text)
+    }
+    .width(200)
+    .height('auto')
+    .backgroundColor(Color.White)
+    .borderRadius(8)
+    .shadow({ radius: 4 })
+    .position({ x: 'caretX', y: 'caretY - height' }) // Need to calculate position
+  }
+
+  private insertSuggestion(text: string) {
+    // Logic to insert suggestion into text
+    // This requires access to TextInput controller to set text and caret
+    // For now, simulate
+    this.internalCode = this.internalCode.replace(new RegExp(this.currentWord + '$'), text);
+    this.showSuggestions = false;
   }
 
   private getTokenColor(type: string): Color | string {

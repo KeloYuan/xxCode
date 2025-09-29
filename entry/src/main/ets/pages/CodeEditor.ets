@@ -7,7 +7,8 @@ import { ThemeService, Theme } from '../services/ThemeService';
 import { SearchDialog } from '../components/SearchDialog';
 import { SearchResult } from '../services/SearchService';
 import { common } from '@kit.AbilityKit';
-import { window } from '@kit.ArkUI';
+import { NavigationTitleMode } from '@kit.ArkUI';
+import { CodeCompletionService } from '../services/CodeCompletionService';
 
 @Entry
 @Component
@@ -33,6 +34,8 @@ struct CodeEditor {
 
   @State currentTheme: Theme = this.themeService.getCurrentTheme();
 
+  private autoSaveInterval: number | null = null;
+
   aboutToAppear() {
     // 获取UIAbility的context
     this.context = this.getUIContext().getHostContext() as common.UIAbilityContext;
@@ -41,10 +44,12 @@ struct CodeEditor {
     this.setupThemeListener();
     this.loadSavedTheme();
     this.initializeWelcomePage();
+    this.setupAutoSave();
   }
 
   aboutToDisappear() {
     this.cleanupThemeListener();
+    this.cleanupAutoSave();
   }
 
   private setupThemeListener() {
@@ -75,47 +80,45 @@ struct CodeEditor {
   }
 
   build() {
-    Stack() {
-      Column() {
-        // 顶部工具栏
-        this.buildModernToolbar()
+    Navigation() {
+      Stack() {
+        Column() {
+          this.buildModernToolbar()
 
-        // 标签页区域
-        if (this.tabs.length > 0) {
-          this.buildModernTabBar()
-        }
-
-        // 主内容区域
-        Row() {
-          // 左侧文件树
-          if (this.isFileTreeVisible) {
-            this.buildModernFileTree()
+          if (this.tabs.length > 0) {
+            this.buildModernTabBar()
           }
 
-          // 编辑器区域
-          this.buildModernEditorArea()
+          Row() {
+            if (this.isFileTreeVisible) {
+              this.buildModernFileTree()
+            }
+
+            this.buildModernEditorArea()
+          }
+          .layoutWeight(1)
         }
-        .layoutWeight(1)
+        .height('100%')
+        .width('100%')
+        .backgroundColor($r('app.color.background_secondary'))
+
+        if (this.showSearchDialog) {
+          SearchDialog({
+            visible: this.showSearchDialog,
+            onClose: () => {
+              this.showSearchDialog = false;
+            },
+            onResultSelect: (result: SearchResult) => {
+              this.handleSearchResult(result);
+            }
+          })
+        }
       }
       .height('100%')
       .width('100%')
-      .backgroundColor($r('app.color.background_secondary'))
-
-      // 搜索对话框
-      if (this.showSearchDialog) {
-        SearchDialog({
-          visible: this.showSearchDialog,
-          onClose: () => {
-            this.showSearchDialog = false;
-          },
-          onResultSelect: (result: SearchResult) => {
-            this.handleSearchResult(result);
-          }
-        })
-      }
     }
-    .height('100%')
-    .width('100%')
+    .title($r('app.string.editor_page_title'))
+    .titleMode(NavigationTitleMode.Mini)
   }
 
   private initializeWelcomePage(): void {
@@ -460,47 +463,46 @@ struct CodeEditor {
   }
 
   getStatusText(): string {
-    if (!this.activeTab) return '未选择文件';
-    return `第 1 行，${this.editorContent.length} 字符`;
+    if (!this.activeTab) {
+      return '未选择文件';
+    }
+    return `第 ${this.getLineCount()} 行，${this.editorContent.length} 字符`;
+  }
+
+  private getLineCount(): number {
+    return this.editorContent ? this.editorContent.split('\n').length : 1;
   }
 
   @Builder
   buildModernTabBar(): void {
-    Column() {
-      Scroll() {
-        Row() {
-          ForEach(this.tabs, (tab: EditorTab) => {
-            this.buildModernTab(tab)
-          })
-          
-          // 添加新标签按钮
-          Button({ type: ButtonType.Circle, stateEffect: true }) {
-            Text('+')
-              .fontSize(18)
-              .fontWeight(FontWeight.Medium)
-          }
-          .backgroundColor($r('app.color.background_primary'))
-          .fontColor($r('app.color.text_secondary'))
-          .width(32)
-          .height(32)
-          .border({
-            width: 1,
-            color: $r('app.color.border_light')
-          })
-          .margin({ left: 8 })
-          .onClick(() => this.createNewFileDialog())
-        }
-        .padding({ left: 16, right: 16 })
-      }
-      .scrollable(ScrollDirection.Horizontal)
-      .scrollBar(BarState.Off)
-      .height(48)
-      .backgroundColor($r('app.color.surface_elevated'))
+    Scroll() {
+      Row() {
+        ForEach(this.tabs, (tab: EditorTab) => {
+          this.buildModernTab(tab)
+        })
 
-      Divider()
-        .color($r('app.color.border_light'))
-        .strokeWidth(0.5)
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          Text('+')
+            .fontSize(18)
+            .fontWeight(FontWeight.Medium)
+        }
+        .backgroundColor($r('app.color.background_primary'))
+        .fontColor($r('app.color.text_secondary'))
+        .width(32)
+        .height(32)
+        .border({
+          width: 1,
+          color: $r('app.color.border_light')
+        })
+        .margin({ left: 8 })
+        .onClick(() => this.createNewFileDialog())
+      }
+      .padding({ left: 16, right: 16 })
     }
+    .scrollable(ScrollDirection.Horizontal)
+    .scrollBar(BarState.Off)
+    .height(48)
+    .backgroundColor($r('app.color.surface_elevated'))
   }
 
   @Builder
@@ -1527,7 +1529,37 @@ struct CodeEditor {
   private handleContentChange(value: string) {
     this.editorContent = value;
     if (this.activeTab) {
+      this.activeTab.content = value; // Add this
       this.activeTab.isModified = true;
     }
+  }
+
+  private setupAutoSave() {
+    this.autoSaveInterval = setInterval(() => {
+      this.autoSaveModifiedTabs();
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+
+  private cleanupAutoSave() {
+    if (this.autoSaveInterval) {
+      clearInterval(this.autoSaveInterval);
+      this.autoSaveInterval = null;
+    }
+  }
+
+  private async autoSaveModifiedTabs() {
+    for (const tab of this.tabs) {
+      if (tab.isModified) {
+        try {
+          await this.fileService.writeFileContent(tab.filePath, tab.content);
+          this.fileService.markTabSaved(tab.id);
+          console.log(`Auto-saved: ${tab.fileName}`);
+        } catch (error) {
+          console.error(`Auto-save failed for ${tab.fileName}:`, error);
+        }
+      }
+    }
+    // Update UI
+    this.tabs = [...this.tabs];
   }
 }

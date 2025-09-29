@@ -15,6 +15,14 @@
     {
       "name": "permission_reason",
       "value": "需要访问文档权限来打开、编辑和保存代码文件"
+    },
+    {
+      "name": "index_page_title",
+      "value": "欢迎"
+    },
+    {
+      "name": "editor_page_title",
+      "value": "代码编辑器"
     }
   ]
 }
