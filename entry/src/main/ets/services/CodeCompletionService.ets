@@ -39,11 +39,14 @@ export class CodeCompletionService {
       const suggestions = this.completionData.get(language) || [];
       return suggestions
         .filter(word => word.startsWith(prefix) && word !== prefix)
-        .map(word => ({
-          text: word,
-          type: 'keyword',
-          description: `Keyword: ${word}`
-        }));
+        .map(word => {
+          const suggestion: CompletionSuggestion = {
+            text: word,
+            type: 'keyword',
+            description: `Keyword: ${word}`
+          };
+          return suggestion;
+        });
     } catch (error) {
       console.error('Error getting suggestions:', error);
       return [];
