@@ -1,0 +1,149 @@
+========================================
+  HarmonyOS 知识库自动化学习机器人
+  项目结构
+========================================
+
+F:\xxCode\
+├── harmonyos-knowledge/              # 知识库（输出目录）
+│   ├── 00-INDEX.md                  # 完整索引
+│   ├── README.md                    # 知识库总览
+│   ├── 01-harmonyos-next-overview.md
+│   ├── 02-arkts-basics.md
+│   ├── 03-component-library.md
+│   ├── 04-state-management.md
+│   ├── 05-layout-examples.md
+│   ├── 06-list-grid-examples.md
+│   ├── 08-network-http.md
+│   ├── 09-file-management.md
+│   ├── 10-custom-dialogs.md
+│   ├── 11-animations.md
+│   ├── 12-complete-examples.md
+│   ├── 13-gestures.md
+│   └── 14-advanced-animations.md
+│
+└── harmonyos-knowledge-bot/          # 学习机器人
+    ├── venv/                         # 虚拟环境 ✅
+    │   ├── Scripts/                  # 包含 activate.bat
+    │   ├── Lib/                      # 已安装的 Python 包
+    │   └── ...
+    │
+    ├── logs/                         # 日志目录（自动创建）
+    │   └── knowledge_bot_*.log       # 运行日志
+    │
+    ├── config.json                   # 配置文件 ⚙️
+    ├── knowledge_bot.py              # 主程序 🤖
+    ├── requirements.txt              # 依赖列表 ✅
+    │
+    ├── RUN.bat                       # 快速启动 ⭐
+    ├── start_bot.bat                 # 菜单启动（Windows）
+    ├── start_bot.sh                  # 启动脚本（Linux/Mac）
+    │
+    ├── README.md                     # 完整文档
+    ├── QUICKSTART.md                 # 快速开始
+    ├── 使用说明.txt                  # 中文说明
+    └── 项目结构.txt                  # 本文件
+
+========================================
+📝 配置文件说明
+========================================
+
+config.json - 核心配置
+  • search_topics - 学习主题列表
+  • sources - 数据源配置
+  • output_dir - 输出目录
+  • quality_settings - 质量控制
+  • output_settings - 输出设置
+
+.env - 环境变量（需手动创建）
+  • OPENAI_API_KEY - AI 分析功能
+  • GITEE_TOKEN - Gitee API 访问
+
+========================================
+🚀 启动方式
+========================================
+
+1. 双击启动（推荐）
+   ➜ 双击 RUN.bat
+
+2. 菜单启动
+   ➜ 双击 start_bot.bat
+   ➜ 选择运行模式
+
+3. 命令行启动
+   ➜ cd harmonyos-knowledge-bot
+   ➜ venv\Scripts\activate
+   ➜ python knowledge_bot.py --mode auto
+
+========================================
+📊 输出结果
+========================================
+
+生成的文档会保存在：
+  ../harmonyos-knowledge/
+
+文件命名格式：
+  20251009-主题名称.md
+
+日志文件位置：
+  logs/knowledge_bot_*.log
+
+========================================
+⚙️ 自定义配置
+========================================
+
+修改学习主题：
+  编辑 config.json -> search_topics
+
+调整质量阈值：
+  编辑 config.json -> quality_threshold
+
+设置文档数量：
+  编辑 config.json -> max_documents_per_run
+
+启用 AI 功能：
+  1. 复制 .env.example 为 .env
+  2. 填入 OPENAI_API_KEY
+  3. 编辑 config.json -> ai_settings.enabled = true
+
+========================================
+📚 文档资源
+========================================
+
+README.md
+  - 完整功能说明
+  - 高级用法
+  - 配置详解
+
+QUICKSTART.md
+  - 快速开始
+  - 使用示例
+  - 常见问题
+
+使用说明.txt
+  - 中文说明
+  - 使用技巧
+  - 注意事项
+
+========================================
+🎯 下一步操作
+========================================
+
+1. [推荐] 双击 RUN.bat 启动
+2. 选择 [1] 自动模式
+3. 等待机器人学习
+4. 查看生成的文档
+5. 根据需要调整配置
+
+========================================
+💡 提示
+========================================
+
+• 首次运行建议设置少量文档
+• 定期运行以保持知识库更新
+• 生成的内容需要人工审核
+• 遵守网站爬取规则
+
+========================================
+✅ 环境状态：已就绪
+========================================
+
