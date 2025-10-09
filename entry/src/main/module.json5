@@ -12,28 +12,29 @@
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
-    "requestPermissions": [
-      {
-        "name": "ohos.permission.READ_DOCUMENT",
-        "reason": "$string:permission_reason",
-        "usedScene": {
-          "abilities": [
-            "EntryAbility"
-          ],
-          "when": "inuse"
-        }
-      },
-      {
-        "name": "ohos.permission.WRITE_DOCUMENT",
-        "reason": "$string:permission_reason",
-        "usedScene": {
-          "abilities": [
-            "EntryAbility"
-          ],
-          "when": "inuse"
-        }
-      }
-    ],
+    // Permissions temporarily commented out - use FilePicker instead
+    // "requestPermissions": [
+    //   {
+    //     "name": "ohos.permission.READ_DOCUMENT",
+    //     "reason": "$string:permission_reason",
+    //     "usedScene": {
+    //       "abilities": [
+    //         "EntryAbility"
+    //       ],
+    //       "when": "inuse"
+    //     }
+    //   },
+    //   {
+    //     "name": "ohos.permission.WRITE_DOCUMENT",
+    //     "reason": "$string:permission_reason",
+    //     "usedScene": {
+    //       "abilities": [
+    //         "EntryAbility"
+    //       ],
+    //       "when": "inuse"
+    //     }
+    //   }
+    // ],
     "abilities": [
       {
         "name": "EntryAbility",

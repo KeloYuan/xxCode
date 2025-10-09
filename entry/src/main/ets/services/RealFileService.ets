@@ -1,5 +1,6 @@
 import fs from '@ohos.file.fs';
 import picker from '@ohos.file.picker';
+import util from '@ohos.util';
 import { FileItem, EditorTab } from '../models/FileModel';
 import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
@@ -42,17 +43,78 @@ export class RealFileService {
 
   // 打开文件选择器
   async openFilePicker(): Promise<string[]> {
+    console.log('[RealFileService] === 开始文件选择流程 ===');
     try {
+      console.log('[RealFileService] 1. 创建 DocumentViewPicker');
       const documentPicker = new picker.DocumentViewPicker();
-      const result = await documentPicker.select({
-        maxSelectNumber: 10,
-        defaultFilePathUri: '',
-        fileSuffixFilters: ['.txt', '.js', '.ts', '.md', '.json', '.xml', '.css', '.html', '.ets']
-      });
-      return result;
+      
+      console.log('[RealFileService] 2. 创建 DocumentSelectOptions');
+      const documentSelectOptions = new picker.DocumentSelectOptions();
+      documentSelectOptions.maxSelectNumber = 10;
+      
+      console.log('[RealFileService] 3. 调用 select() 方法...');
+      const result = await documentPicker.select(documentSelectOptions);
+      
+      console.log('[RealFileService] 4. 收到结果');
+      console.log('[RealFileService] 结果类型:', typeof result);
+      console.log('[RealFileService] 结果内容:', JSON.stringify(result));
+      console.log('[RealFileService] 是否为数组:', Array.isArray(result));
+      
+      // 检查返回格式
+      if (Array.isArray(result)) {
+        console.log('[RealFileService] ✓ 返回格式正确（数组）');
+        console.log('[RealFileService] 文件数量:', result.length);
+        if (result.length > 0) {
+          console.log('[RealFileService] 第一个文件:', result[0]);
+        }
+        return result;
+      } else if (result && typeof result === 'object') {
+        console.log('[RealFileService] ⚠️ 返回对象，尝试提取属性');
+        console.log('[RealFileService] 对象键:', Object.keys(result));
+        
+        // 类型转换为 Record
+        const resultObj = result as Record<string, string[] | string>;
+        
+        // 可能的属性名
+        if (resultObj.uris && Array.isArray(resultObj.uris)) {
+          console.log('[RealFileService] 找到 uris 属性');
+          return resultObj.uris as string[];
+        }
+        if (resultObj.uri && typeof resultObj.uri === 'string') {
+          console.log('[RealFileService] 找到 uri 属性');
+          return [resultObj.uri];
+        }
+        return [];
+      } else {
+        console.log('[RealFileService] ⚠️ 未知返回格式');
+        return [];
+      }
     } catch (error) {
-      console.error('文件选择失败:', error);
+      console.error('[RealFileService] ❌ 文件选择失败');
+      console.error('[RealFileService] 错误类型:', error?.constructor?.name);
+      console.error('[RealFileService] 错误消息:', (error as Error)?.message);
+      console.error('[RealFileService] 完整错误:', JSON.stringify(error));
       return [];
+    } finally {
+      console.log('[RealFileService] === 文件选择流程结束 ===');
+    }
+  }
+
+  // 打开文件夹选择器
+  async openFolderPicker(): Promise<string> {
+    try {
+      // 注意：HarmonyOS 的 picker 暂时不支持直接选择文件夹
+      // 我们需要使用其他方式，比如让用户选择一个文件，然后获取其父目录
+      // 或者使用应用沙盒目录作为起点
+      
+      // 暂时返回应用沙盒目录
+      if (this.context) {
+        return this.context.filesDir;
+      }
+      return '';
+    } catch (error) {
+      console.error('文件夹选择失败:', error);
+      return '';
     }
   }
 
@@ -73,21 +135,26 @@ export class RealFileService {
   // 读取文件内容
   async readFileContent(filePath: string): Promise<string> {
     try {
+      console.log('[RealFileService] 开始读取文件:', filePath);
+      
       const file = fs.openSync(filePath, fs.OpenMode.READ_ONLY);
       const stat = fs.statSync(filePath);
+      console.log('[RealFileService] 文件大小:', stat.size);
+      
       const buffer = new ArrayBuffer(stat.size);
       fs.readSync(file.fd, buffer);
       fs.closeSync(file);
 
-      // 将ArrayBuffer转换为字符串
+      // 将ArrayBuffer转换为字符串 - 使用 TextDecoder 处理 UTF-8
       const uint8Array = new Uint8Array(buffer);
-      let result = '';
-      for (let i = 0; i < uint8Array.length; i++) {
-        result += String.fromCharCode(uint8Array[i]);
-      }
+      const decoder = new util.TextDecoder('utf-8');
+      const result = decoder.decode(uint8Array, { stream: false });
+      
+      console.log('[RealFileService] 文件读取成功，内容长度:', result.length);
       return result;
     } catch (error) {
-      console.error('读取文件失败:', error);
+      console.error('[RealFileService] 读取文件失败:', error);
+      console.error('[RealFileService] 文件路径:', filePath);
       throw new Error(`读取文件失败: ${error}`);
     }
   }
@@ -156,6 +223,51 @@ export class RealFileService {
       });
     } catch (error) {
       console.error('读取目录失败:', error);
+      return [];
+    }
+  }
+
+  // 递归读取文件树（带过滤）
+  async readDirectoryTree(dirPath: string, maxDepth: number = 5, currentDepth: number = 0): Promise<FileItem[]> {
+    try {
+      if (currentDepth >= maxDepth) {
+        return [];
+      }
+
+      const items: FileItem[] = [];
+      const entries = fs.listFileSync(dirPath);
+
+      // 忽略的目录和文件
+      const ignoredDirs = ['node_modules', '.git', 'dist', 'build', 'out', '.idea', '.vscode', '__pycache__'];
+      const ignoredFiles = ['.DS_Store', 'Thumbs.db'];
+
+      for (const entry of entries) {
+        // 跳过隐藏文件和忽略的目录
+        if (entry.startsWith('.') && entry !== '.') continue;
+        if (ignoredDirs.includes(entry)) continue;
+        if (ignoredFiles.includes(entry)) continue;
+
+        const fullPath = `${dirPath}/${entry}`;
+        const fileInfo = await this.getFileInfo(fullPath);
+        
+        if (fileInfo) {
+          // 如果是目录，递归读取子目录
+          if (fileInfo.isDirectory) {
+            const children = await this.readDirectoryTree(fullPath, maxDepth, currentDepth + 1);
+            fileInfo.children = children;
+          }
+          items.push(fileInfo);
+        }
+      }
+
+      return items.sort((a, b) => {
+        // 目录优先，然后按名称排序
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name);
+      });
+    } catch (error) {
+      console.error('读取文件树失败:', error);
       return [];
     }
   }
