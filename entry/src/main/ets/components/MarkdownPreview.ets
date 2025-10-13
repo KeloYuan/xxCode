@@ -1,164 +1,154 @@
-import { MarkdownService, MarkdownElement } from '../services/MarkdownService';
+/**
+ * Markdown 预览组件
+ * 用于显示 Markdown 渲染后的 HTML 内容
+ */
+import { MarkdownService } from '../services/MarkdownService';
+import { ThemeService, Theme } from '../services/ThemeService';
+import webview from '@ohos.web.webview';
 
 @Component
 export struct MarkdownPreview {
   @Prop markdown: string = '';
-  @Prop fontSize: number = 14;
-
-  private markdownService: MarkdownService = new MarkdownService();
-  @State elements: MarkdownElement[] = [];
+  @State private html: string = '';
+  @State private currentTheme: Theme = ThemeService.getInstance().getCurrentTheme();
+  
+  private markdownService: MarkdownService = MarkdownService.getInstance();
+  private themeService: ThemeService = ThemeService.getInstance();
 
   aboutToAppear() {
     this.updatePreview();
-  }
-
-  build() {
-    Scroll() {
-      Column() {
-        ForEach(this.elements, (element: MarkdownElement, index: number) => {
-          this.renderElement(element)
-        })
-      }
-      .padding(16)
-      .width('100%')
-    }
-    .height('100%')
-    .width('100%')
-    .backgroundColor(Color.White)
-    // scrollable property not available in this ArkTS version
-  }
-
-  @Builder
-  renderElement(element: MarkdownElement) {
-    Column() {
-      if (element.type === 'heading') {
-        this.renderHeading(element)
-      } else if (element.type === 'paragraph') {
-        this.renderParagraph(element)
-      } else if (element.type === 'code') {
-        this.renderCodeBlock(element)
-      } else if (element.type === 'list') {
-        this.renderList(element)
-      } else if (element.type === 'blockquote') {
-        this.renderBlockquote(element)
-      } else {
-        this.renderParagraph(element)
-      }
-    }
-    .margin({ bottom: 12 })
-  }
-
-  @Builder
-  renderHeading(element: MarkdownElement) {
-    Text(element.content)
-      .fontSize(this.getHeadingFontSize(element.level || 1))
-      .fontWeight(FontWeight.Bold)
-      .textAlign(TextAlign.Start)
-      .margin({ bottom: 8 })
-  }
-
-  @Builder
-  renderParagraph(element: MarkdownElement) {
-    Text(element.content)
-      .fontSize(this.fontSize)
-      .textAlign(TextAlign.Start)
-      .lineHeight(1.6)
-  }
-
-  @Builder
-  renderCodeBlock(element: MarkdownElement) {
-    Column() {
-      // 代码块标题（如果有语言）
-      if (element.language && element.language !== 'text') {
-        Row() {
-          Text(element.language)
-            .fontSize(12)
-            .fontColor(Color.Gray)
-            .padding(8)
-        }
-        .backgroundColor(Color.White)
-        .borderRadius({ topLeft: 8, topRight: 8 })
-      }
-
-      // 代码内容
-      Text(element.content)
-        .fontSize(this.fontSize - 2)
-        .fontFamily('monospace')
-        .textAlign(TextAlign.Start)
-        .backgroundColor(Color.White)
-        .padding(16)
-        .borderRadius(element.language && element.language !== 'text' ? { bottomLeft: 8, bottomRight: 8 } : 8)
-        .lineHeight(1.4)
-    }
-    .borderRadius(8)
-    .margin({ bottom: 8 })
-  }
-
-  @Builder
-  renderList(element: MarkdownElement) {
-    Column() {
-      ForEach(element.items || [], (item: string, index: number) => {
-        Row() {
-          Text('•')
-            .fontSize(this.fontSize)
-            .margin({ right: 8 })
-            .width(16)
-            .textAlign(TextAlign.Center)
-
-          Text(item)
-            .fontSize(this.fontSize)
-            .textAlign(TextAlign.Start)
-            .layoutWeight(1)
-        }
-        .padding(4)
-      })
-    }
-  }
-
-  @Builder
-  renderBlockquote(element: MarkdownElement) {
-    Column() {
-      ForEach(element.items || [], (item: string, index: number) => {
-        Row() {
-          Text('|')
-            .fontSize(this.fontSize)
-            .fontColor(Color.Blue)
-            .margin({ right: 12 })
-            .width(4)
-
-          Text(item)
-            .fontSize(this.fontSize)
-            .textAlign(TextAlign.Start)
-            .layoutWeight(1)
-            .fontStyle(FontStyle.Italic)
-        }
-        .padding(8)
-        .backgroundColor(Color.Gray)
-        .borderRadius(4)
-      })
-    }
-  }
-
-  private getHeadingFontSize(level: number): number {
-    const baseSize = this.fontSize + 8;
-    return Math.max(baseSize - (level - 1) * 2, 12);
+    
+    this.themeService.onThemeChange((theme: Theme) => {
+      this.currentTheme = theme;
+      this.updatePreview();
+    });
   }
 
   private updatePreview() {
-    if (this.markdown.trim()) {
-      this.elements = this.markdownService.parseMarkdown(this.markdown);
-    } else {
-      this.elements = [];
+    const contentHtml = this.markdownService.convertToHtml(this.markdown);
+    this.html = this.wrapHtml(contentHtml);
+  }
+
+  private wrapHtml(content: string): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: ${this.currentTheme.colors.text};
+      background-color: ${this.currentTheme.colors.background};
+      padding: 20px;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 24px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      line-height: 1.25;
+      color: ${this.currentTheme.colors.text};
+    }
+    h1 { font-size: 2em; border-bottom: 1px solid ${this.currentTheme.colors.border}; padding-bottom: 0.3em; }
+    h2 { font-size: 1.5em; border-bottom: 1px solid ${this.currentTheme.colors.border}; padding-bottom: 0.3em; }
+    h3 { font-size: 1.25em; }
+    p {
+      margin-bottom: 16px;
+    }
+    a {
+      color: ${this.currentTheme.colors.primary};
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    code {
+      padding: 2px 6px;
+      font-size: 85%;
+      background-color: ${this.currentTheme.colors.surface};
+      border-radius: 3px;
+      font-family: "SF Mono", Monaco, Consolas, monospace;
+    }
+    pre {
+      padding: 16px;
+      overflow: auto;
+      font-size: 85%;
+      line-height: 1.45;
+      background-color: ${this.currentTheme.editor.background};
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+    pre code {
+      padding: 0;
+      background-color: transparent;
+      color: ${this.currentTheme.editor.text};
+    }
+    ul, ol {
+      padding-left: 2em;
+      margin-bottom: 16px;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    blockquote {
+      padding: 0 1em;
+      color: ${this.currentTheme.colors.textSecondary};
+      border-left: 4px solid ${this.currentTheme.colors.border};
+      margin-bottom: 16px;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    table th, table td {
+      padding: 8px 12px;
+      border: 1px solid ${this.currentTheme.colors.border};
+    }
+    table th {
+      background-color: ${this.currentTheme.colors.surface};
+      font-weight: 600;
+    }
+    strong {
+      font-weight: 600;
+    }
+    em {
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  ${content}
+</body>
+</html>
+    `;
   }
 
-  // 公共方法供父组件调用
-  public refreshPreview() {
-    this.updatePreview();
-  }
-
-  public setMarkdown(markdown: string) {
-    this.markdown = markdown;
-    this.updatePreview();
+  build() {
+    Column() {
+      // 使用 Web 组件显示 HTML
+      Web({ src: 'about:blank' })
+        .width('100%')
+        .height('100%')
+        .onPageEnd(() => {
+          // 页面加载完成后，注入 HTML 内容
+        })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.currentTheme.colors.background)
   }
 }
+

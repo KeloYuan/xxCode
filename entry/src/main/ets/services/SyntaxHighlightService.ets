@@ -1,241 +1,361 @@
-export interface HighlightToken {
-  text: string;
-  type: 'keyword' | 'string' | 'comment' | 'number' | 'function' | 'variable' | 'operator' | 'bracket' | 'text';
-}
+/**
+ * 语法高亮服务
+ * 提供代码的语法分析和高亮标记
+ */
 
-interface MatchResult {
-  index: number;
-  match: RegExpExecArray | null;
-  patternIndex: number;
+export interface Token {
+  type: string;
+  value: string;
+  start: number;
+  end: number;
 }
 
 export class SyntaxHighlightService {
-  private languagePatterns: Map<string, RegExp[]> = new Map();
+  private static instance: SyntaxHighlightService | null = null;
 
-  constructor() {
-    this.initializePatterns();
-  }
+  private constructor() {}
 
-  private initializePatterns(): void {
-    // JavaScript/TypeScript 模式
-    this.languagePatterns.set('javascript', [
-      // 关键字
-      /\b(function|const|let|var|if|else|for|while|return|class|extends|import|export|from|async|await|try|catch|finally|throw|new|this|super|static|public|private|protected)\b/g,
-      // 字符串
-      /(["'])((?:\\.|(?!\1)[^\\])*)\1/g,
-      // 单行注释
-      /\/\/.*$/gm,
-      // 多行注释
-      /\/\*[\s\S]*?\*\//g,
-      // 数字
-      /\b\d+(\.\d+)?\b/g,
-      // 函数调用
-      /\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?=\()/g,
-      // 括号和操作符
-      /[{}[\]();,.+\-*\/=<>!&|?:]/g
-    ]);
-
-    const jsPatterns = this.languagePatterns.get('javascript') || [];
-    this.languagePatterns.set('typescript', [
-      // 继承JavaScript模式
-      ...jsPatterns,
-      // TypeScript特定关键字
-      /\b(interface|type|enum|implements|readonly|keyof|typeof|instanceof|as|in|of|void|undefined|null|boolean|string|number|object|any|unknown|never)\b/g
-    ]);
-
-    // CSS 模式
-    this.languagePatterns.set('css', [
-      // 选择器
-      /\b([a-zA-Z][a-zA-Z0-9-_]*)\s*(?=\{)/g,
-      // 属性
-      /\b([a-zA-Z-]+)\s*:/g,
-      // 值
-      /:\s*([^;]+);/g,
-      // 字符串
-      /(["'])((?:\\.|(?!\1)[^\\])*)\1/g,
-      // 注释
-      /\/\*[\s\S]*?\*\//g,
-      // 数字和单位
-      /\b\d+(\.\d+)?(%|px|em|rem|vh|vw|pt|pc|in|cm|mm|ex|ch|vmin|vmax)?\b/g
-    ]);
-
-    // Markdown 模式
-    this.languagePatterns.set('markdown', [
-      // 标题
-      /^(#{1,6})\s+.*/gm,
-      // 粗体和斜体
-      /(\*\*|__)(.*?)\1/g,
-      /(\*|_)(.*?)\1/g,
-      // 代码块
-      /```[\s\S]*?```/g,
-      // 行内代码
-      /`([^`]+)`/g,
-      // 链接
-      /\[([^\]]+)\]\(([^)]+)\)/g,
-      // 列表
-      /^[\s]*[-*+]\s+.*/gm,
-      /^[\s]*\d+\.\s+.*/gm
-    ]);
-
-    // Python 模式
-    this.languagePatterns.set('python', [
-      // 关键字
-      /\b(def|class|if|elif|else|for|while|return|import|from|as|try|except|finally|with|lambda|and|or|not|in|is|None|True|False|print|len|range|str|int|float|list|dict|set|tuple)\b/g,
-      // 字符串
-      /(["'])((?:\\.|(?!\1)[^\\])*)\1/g,
-      // 注释
-      /#.*$/gm,
-      // 数字
-      /\b\d+(\.\d+)?\b/g,
-      // 函数定义
-      /\bdef\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g
-    ]);
+  public static getInstance(): SyntaxHighlightService {
+    if (!SyntaxHighlightService.instance) {
+      SyntaxHighlightService.instance = new SyntaxHighlightService();
+    }
+    return SyntaxHighlightService.instance;
   }
 
   /**
-   * 分析代码并返回高亮token列表
+   * 对代码进行语法高亮分析
    */
-  analyzeCode(code: string, language: string = 'javascript'): HighlightToken[] {
-    const tokens: HighlightToken[] = [];
-    const patterns = this.languagePatterns.get(language) || this.languagePatterns.get('javascript')!;
+  public tokenize(code: string, language: string): Token[] {
+    switch (language.toLowerCase()) {
+      case 'javascript':
+      case 'typescript':
+      case 'ets':
+        return this.tokenizeJavaScript(code);
+      case 'python':
+        return this.tokenizePython(code);
+      case 'java':
+        return this.tokenizeJava(code);
+      case 'markdown':
+        return this.tokenizeMarkdown(code);
+      case 'json':
+        return this.tokenizeJSON(code);
+      case 'html':
+        return this.tokenizeHTML(code);
+      case 'css':
+        return this.tokenizeCSS(code);
+      default:
+        return this.tokenizeText(code);
+    }
+  }
 
-    // 创建一个副本用于处理
-    let remainingCode = code;
-    let currentIndex = 0;
+  /**
+   * JavaScript/TypeScript 语法分析
+   */
+  private tokenizeJavaScript(code: string): Token[] {
+    const tokens: Token[] = [];
+    const keywords = ['function', 'const', 'let', 'var', 'if', 'else', 'for', 'while', 
+                     'return', 'import', 'export', 'class', 'extends', 'async', 'await',
+                     'try', 'catch', 'throw', 'new', 'this', 'super', 'static', 'private',
+                     'public', 'protected', 'interface', 'type', 'enum', 'namespace'];
+    
+    const operators = ['+', '-', '*', '/', '=', '==', '===', '!=', '!==', '<', '>', 
+                      '<=', '>=', '&&', '||', '!', '?', ':', '=>'];
+    
+    let i = 0;
+    while (i < code.length) {
+      // 跳过空白字符
+      if (/\s/.test(code[i])) {
+        i++;
+        continue;
+      }
 
-    while (remainingCode.length > 0) {
-      let earliestMatch: MatchResult | null = null;
-
-      // 找到最早的匹配
-      patterns.forEach((pattern, patternIndex) => {
-        pattern.lastIndex = 0; // 重置正则表达式状态
-        const match = pattern.exec(remainingCode);
-
-        if (match && match.index === 0) { // 只匹配从开头开始的
-          const currentLength = match[0].length;
-          const earliestLength = earliestMatch?.match?.[0]?.length || 0;
-          if (!earliestMatch || currentLength > earliestLength) {
-            earliestMatch = { index: currentIndex, match, patternIndex };
-          }
+      // 单行注释
+      if (code.substr(i, 2) === '//') {
+        const start = i;
+        while (i < code.length && code[i] !== '\n') {
+          i++;
         }
-      });
+        tokens.push({ type: 'comment', value: code.substring(start, i), start, end: i });
+        continue;
+      }
 
-      if (earliestMatch !== null) {
-        const matchData: MatchResult = earliestMatch;
-        if (matchData.match !== null) {
-          const matchResult: RegExpExecArray = matchData.match;
-          const tokenText: string = matchResult[0];
-          const patternIndex: number = matchData.patternIndex;
-
-          // 确定token类型
-          const tokenType = this.getTokenType(tokenText, language, patternIndex);
-
-          tokens.push({
-            text: tokenText,
-            type: tokenType
-          });
-
-          // 更新位置和剩余代码
-          currentIndex += tokenText.length;
-          remainingCode = remainingCode.substring(tokenText.length);
-        } else {
-          // 没有匹配到任何模式，将剩余代码作为普通文本
-          if (remainingCode.length > 0) {
-            tokens.push({
-              text: remainingCode.charAt(0),
-              type: 'text'
-            });
-            currentIndex += 1;
-            remainingCode = remainingCode.substring(1);
-          }
+      // 多行注释
+      if (code.substr(i, 2) === '/*') {
+        const start = i;
+        i += 2;
+        while (i < code.length - 1 && code.substr(i, 2) !== '*/') {
+          i++;
         }
-      } else {
-        // 没有匹配到任何模式，将剩余代码作为普通文本
-        if (remainingCode.length > 0) {
-          tokens.push({
-            text: remainingCode.charAt(0),
-            type: 'text'
-          });
-          currentIndex += 1;
-          remainingCode = remainingCode.substring(1);
+        i += 2;
+        tokens.push({ type: 'comment', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 字符串（双引号）
+      if (code[i] === '"') {
+        const start = i;
+        i++;
+        while (i < code.length && code[i] !== '"') {
+          if (code[i] === '\\') i++;
+          i++;
         }
+        i++;
+        tokens.push({ type: 'string', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 字符串（单引号）
+      if (code[i] === "'") {
+        const start = i;
+        i++;
+        while (i < code.length && code[i] !== "'") {
+          if (code[i] === '\\') i++;
+          i++;
+        }
+        i++;
+        tokens.push({ type: 'string', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 模板字符串
+      if (code[i] === '`') {
+        const start = i;
+        i++;
+        while (i < code.length && code[i] !== '`') {
+          if (code[i] === '\\') i++;
+          i++;
+        }
+        i++;
+        tokens.push({ type: 'string', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 数字
+      if (/\d/.test(code[i])) {
+        const start = i;
+        while (i < code.length && /[\d.]/.test(code[i])) {
+          i++;
+        }
+        tokens.push({ type: 'number', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 标识符和关键字
+      if (/[a-zA-Z_$]/.test(code[i])) {
+        const start = i;
+        while (i < code.length && /[a-zA-Z0-9_$]/.test(code[i])) {
+          i++;
+        }
+        const value = code.substring(start, i);
+        const type = keywords.includes(value) ? 'keyword' : 
+                    /^[A-Z]/.test(value) ? 'type' : 'variable';
+        tokens.push({ type, value, start, end: i });
+        continue;
+      }
+
+      // 运算符和括号
+      const char = code[i];
+      if (operators.includes(char) || '(){}[];,'.includes(char)) {
+        const type = operators.includes(char) ? 'operator' : 'bracket';
+        tokens.push({ type, value: char, start: i, end: i + 1 });
+        i++;
+        continue;
+      }
+
+      // 其他字符
+      tokens.push({ type: 'text', value: code[i], start: i, end: i + 1 });
+      i++;
+    }
+
+    return tokens;
+  }
+
+  /**
+   * Python 语法分析
+   */
+  private tokenizePython(code: string): Token[] {
+    const tokens: Token[] = [];
+    const keywords = ['def', 'class', 'if', 'elif', 'else', 'for', 'while', 'return',
+                     'import', 'from', 'as', 'try', 'except', 'finally', 'with', 'lambda',
+                     'pass', 'break', 'continue', 'yield', 'async', 'await', 'True', 'False', 'None'];
+    
+    // 简化的 Python 分析（类似 JS）
+    return this.tokenizeJavaScript(code); // 暂时复用 JS 分析器
+  }
+
+  /**
+   * Java 语法分析
+   */
+  private tokenizeJava(code: string): Token[] {
+    // 简化实现，复用 JS 分析器
+    return this.tokenizeJavaScript(code);
+  }
+
+  /**
+   * Markdown 语法分析
+   */
+  private tokenizeMarkdown(code: string): Token[] {
+    const tokens: Token[] = [];
+    const lines = code.split('\n');
+    let pos = 0;
+
+    for (const line of lines) {
+      const start = pos;
+      
+      // 标题
+      if (line.startsWith('#')) {
+        tokens.push({ type: 'keyword', value: line, start, end: pos + line.length });
+      }
+      // 代码块
+      else if (line.startsWith('```')) {
+        tokens.push({ type: 'string', value: line, start, end: pos + line.length });
+      }
+      // 列表
+      else if (/^[-*+]\s/.test(line)) {
+        tokens.push({ type: 'keyword', value: line, start, end: pos + line.length });
+      }
+      // 普通文本
+      else {
+        tokens.push({ type: 'text', value: line, start, end: pos + line.length });
+      }
+      
+      pos += line.length + 1; // +1 for \n
+    }
+
+    return tokens;
+  }
+
+  /**
+   * JSON 语法分析
+   */
+  private tokenizeJSON(code: string): Token[] {
+    const tokens: Token[] = [];
+    let i = 0;
+
+    while (i < code.length) {
+      if (/\s/.test(code[i])) {
+        i++;
+        continue;
+      }
+
+      // 字符串（JSON 的键和值）
+      if (code[i] === '"') {
+        const start = i;
+        i++;
+        while (i < code.length && code[i] !== '"') {
+          if (code[i] === '\\') i++;
+          i++;
+        }
+        i++;
+        tokens.push({ type: 'string', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 数字
+      if (/[\d-]/.test(code[i])) {
+        const start = i;
+        while (i < code.length && /[\d.eE+-]/.test(code[i])) {
+          i++;
+        }
+        tokens.push({ type: 'number', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 布尔值和 null
+      if (code.substr(i, 4) === 'true' || code.substr(i, 5) === 'false' || code.substr(i, 4) === 'null') {
+        const start = i;
+        const len = code.substr(i, 5) === 'false' ? 5 : 4;
+        i += len;
+        tokens.push({ type: 'keyword', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 括号和符号
+      if ('{}[]:,'.includes(code[i])) {
+        tokens.push({ type: 'bracket', value: code[i], start: i, end: i + 1 });
+        i++;
+        continue;
+      }
+
+      i++;
+    }
+
+    return tokens;
+  }
+
+  /**
+   * HTML 语法分析
+   */
+  private tokenizeHTML(code: string): Token[] {
+    const tokens: Token[] = [];
+    let i = 0;
+
+    while (i < code.length) {
+      // 标签
+      if (code[i] === '<') {
+        const start = i;
+        i++;
+        while (i < code.length && code[i] !== '>') {
+          i++;
+        }
+        i++;
+        tokens.push({ type: 'keyword', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 文本内容
+      const start = i;
+      while (i < code.length && code[i] !== '<') {
+        i++;
+      }
+      if (i > start) {
+        tokens.push({ type: 'text', value: code.substring(start, i), start, end: i });
       }
     }
 
     return tokens;
   }
 
-  private getTokenType(text: string, language: string, patternIndex: number): 'keyword' | 'string' | 'comment' | 'number' | 'function' | 'variable' | 'operator' | 'bracket' | 'text' {
-    if (language === 'javascript') {
-      switch (patternIndex) {
-        case 0: return 'keyword';     // 关键字
-        case 1: return 'string';      // 字符串
-        case 2: return 'comment';     // 单行注释
-        case 3: return 'comment';     // 多行注释
-        case 4: return 'number';      // 数字
-        case 5: return 'function';    // 函数
-        case 6: return 'operator';    // 操作符和括号
-        default: return 'text';
-      }
-    } else if (language === 'typescript') {
-      switch (patternIndex) {
-        case 0: return 'keyword';     // JavaScript关键字
-        case 1: return 'string';      // 字符串
-        case 2: return 'comment';     // 单行注释
-        case 3: return 'comment';     // 多行注释
-        case 4: return 'number';      // 数字
-        case 5: return 'function';    // 函数
-        case 6: return 'keyword';     // TypeScript关键字
-        case 7: return 'operator';    // 操作符和括号
-        default: return 'text';
-      }
-    } else if (language === 'css') {
-      switch (patternIndex) {
-        case 0: return 'variable';    // 选择器
-        case 1: return 'keyword';     // 属性
-        case 2: return 'string';      // 值
-        case 3: return 'string';      // 字符串
-        case 4: return 'comment';     // 注释
-        case 5: return 'number';      // 数字和单位
-        default: return 'text';
-      }
-    } else if (language === 'markdown') {
-      switch (patternIndex) {
-        case 0: return 'keyword';     // 标题
-        case 1: return 'keyword';     // 粗体
-        case 2: return 'keyword';     // 斜体
-        case 3: return 'string';      // 代码块
-        case 4: return 'string';      // 行内代码
-        case 5: return 'keyword';     // 链接
-        case 6: return 'keyword';     // 列表
-        case 7: return 'keyword';     // 有序列表
-        default: return 'text';
-      }
-    } else if (language === 'python') {
-      switch (patternIndex) {
-        case 0: return 'keyword';     // 关键字
-        case 1: return 'string';      // 字符串
-        case 2: return 'comment';     // 注释
-        case 3: return 'number';      // 数字
-        case 4: return 'function';    // 函数
-        default: return 'text';
-      }
-    }
-
-    return 'text';
+  /**
+   * CSS 语法分析
+   */
+  private tokenizeCSS(code: string): Token[] {
+    const tokens: Token[] = [];
+    // 简化实现
+    tokens.push({ type: 'text', value: code, start: 0, end: code.length });
+    return tokens;
   }
 
   /**
-   * 获取语言支持列表
+   * 纯文本（无语法高亮）
    */
-  getSupportedLanguages(): string[] {
-    return Array.from(this.languagePatterns.keys());
+  private tokenizeText(code: string): Token[] {
+    return [{ type: 'text', value: code, start: 0, end: code.length }];
   }
 
   /**
-   * 添加自定义语言模式
+   * 获取语言的显示名称
    */
-  addLanguage(name: string, patterns: RegExp[]): void {
-    this.languagePatterns.set(name, patterns);
+  public getLanguageDisplayName(language: string): string {
+    const nameMap: Record<string, string> = {
+      'javascript': 'JavaScript',
+      'typescript': 'TypeScript',
+      'ets': 'ArkTS',
+      'python': 'Python',
+      'java': 'Java',
+      'cpp': 'C++',
+      'c': 'C',
+      'go': 'Go',
+      'rust': 'Rust',
+      'markdown': 'Markdown',
+      'html': 'HTML',
+      'css': 'CSS',
+      'json': 'JSON',
+      'xml': 'XML',
+      'yaml': 'YAML',
+      'text': 'Plain Text'
+    };
+    return nameMap[language.toLowerCase()] || language;
   }
 }
+

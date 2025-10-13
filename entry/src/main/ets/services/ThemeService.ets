@@ -1,288 +1,299 @@
+/**
+ * 主题服务
+ * 管理应用的主题切换和颜色配置
+ */
+
 export interface ThemeColors {
-  // 背景颜色
   background: string;
   surface: string;
-  surfaceVariant: string;
-
-  // 文本颜色
-  textPrimary: string;
-  textSecondary: string;
-  textDisabled: string;
-
-  // 主要颜色
   primary: string;
-  primaryVariant: string;
   secondary: string;
-  secondaryVariant: string;
-
-  // 功能性颜色
-  error: string;
-  warning: string;
-  success: string;
-  info: string;
-
-  // 边框和分割线
-  divider: string;
+  text: string;
+  textSecondary: string;
   border: string;
+  error: string;
+  success: string;
+  warning: string;
+}
 
-  // 特殊颜色
-  codeBackground: string;
+export interface EditorColors {
+  background: string;
+  lineNumber: string;
   selection: string;
-  hover: string;
+  cursor: string;
+  text: string;
+}
+
+export interface SyntaxColors {
+  keyword: string;
+  string: string;
+  comment: string;
+  number: string;
+  function: string;
+  variable: string;
+  operator: string;
+  type: string;
 }
 
 export interface Theme {
   id: string;
   name: string;
-  type: 'light' | 'dark';
   colors: ThemeColors;
+  editor: EditorColors;
+  syntax: SyntaxColors;
 }
 
 export class ThemeService {
+  private static instance: ThemeService | null = null;
   private currentTheme: Theme;
   private themes: Map<string, Theme> = new Map();
-  private themeChangeListeners: Function[] = [];
+  private listeners: ((theme: Theme) => void)[] = [];
 
-  constructor() {
+  private constructor() {
     this.initializeThemes();
-    this.currentTheme = this.themes.get('light')!;
+    this.currentTheme = this.themes.get('dark')!;
   }
 
+  public static getInstance(): ThemeService {
+    if (!ThemeService.instance) {
+      ThemeService.instance = new ThemeService();
+    }
+    return ThemeService.instance;
+  }
+
+  /**
+   * 初始化内置主题
+   */
   private initializeThemes(): void {
+    // 深色主题（默认）
+    const darkTheme: Theme = {
+      id: 'dark',
+      name: '深色主题',
+      colors: {
+        background: '#1e1e1e',
+        surface: '#2d2d30',
+        primary: '#667eea',
+        secondary: '#764ba2',
+        text: '#d4d4d4',
+        textSecondary: '#cccccc',
+        border: '#3e3e42',
+        error: '#F56C6C',
+        success: '#16a34a',
+        warning: '#ffd700'
+      },
+      editor: {
+        background: '#1e1e1e',
+        lineNumber: '#858585',
+        selection: '#264f78',
+        cursor: '#528bff',
+        text: '#d4d4d4'
+      },
+      syntax: {
+        keyword: '#C678DD',
+        string: '#98C379',
+        comment: '#5C6370',
+        number: '#D19A66',
+        function: '#61AFEF',
+        variable: '#E06C75',
+        operator: '#56B6C2',
+        type: '#E5C07B'
+      }
+    };
+    this.themes.set('dark', darkTheme);
+
     // 浅色主题
     const lightTheme: Theme = {
       id: 'light',
       name: '浅色主题',
-      type: 'light',
       colors: {
         background: '#FFFFFF',
-        surface: '#F8F9FA',
-        surfaceVariant: '#E9ECEF',
-
-        textPrimary: '#212529',
-        textSecondary: '#6C757D',
-        textDisabled: '#ADB5BD',
-
-        primary: '#007BFF',
-        primaryVariant: '#0056B3',
-        secondary: '#6C757D',
-        secondaryVariant: '#545B62',
-
-        error: '#DC3545',
-        warning: '#FFC107',
-        success: '#28A745',
-        info: '#17A2B8',
-
-        divider: '#DEE2E6',
-        border: '#CED4DA',
-
-        codeBackground: '#F8F9FA',
-        selection: '#007BFF33',
-        hover: '#007BFF0D'
-      }
-    };
-
-    // 深色主题
-    const darkTheme: Theme = {
-      id: 'dark',
-      name: '深色主题',
-      type: 'dark',
-      colors: {
-        background: '#121212',
-        surface: '#1E1E1E',
-        surfaceVariant: '#2A2A2A',
-
-        textPrimary: '#FFFFFF',
-        textSecondary: '#B3B3B3',
-        textDisabled: '#666666',
-
-        primary: '#BB86FC',
-        primaryVariant: '#9965F4',
-        secondary: '#03DAC6',
-        secondaryVariant: '#00B3A6',
-
-        error: '#CF6679',
-        warning: '#FFB74D',
-        success: '#81C784',
-        info: '#4FC3F7',
-
-        divider: '#333333',
-        border: '#404040',
-
-        codeBackground: '#1E1E1E',
-        selection: '#BB86FC33',
-        hover: '#BB86FC0D'
-      }
-    };
-
-    // 鸿蒙主题（Material You风格）
-    const harmonyTheme: Theme = {
-      id: 'harmony',
-      name: '鸿蒙主题',
-      type: 'light',
-      colors: {
-        background: '#FEFEFE',
-        surface: '#F7F7F7',
-        surfaceVariant: '#EEEEEE',
-
-        textPrimary: '#1A1A1A',
+        surface: '#F5F5F5',
+        primary: '#667eea',
+        secondary: '#764ba2',
+        text: '#333333',
         textSecondary: '#666666',
-        textDisabled: '#999999',
-
-        primary: '#007DFF',
-        primaryVariant: '#005BCC',
-        secondary: '#FF6B35',
-        secondaryVariant: '#E85D2E',
-
-        error: '#FF4757',
-        warning: '#FFA726',
-        success: '#66BB6A',
-        info: '#42A5F5',
-
-        divider: '#E0E0E0',
-        border: '#D0D0D0',
-
-        codeBackground: '#FAFAFA',
-        selection: '#007DFF33',
-        hover: '#007DFF0D'
+        border: '#E0E0E0',
+        error: '#F56C6C',
+        success: '#16a34a',
+        warning: '#ffd700'
+      },
+      editor: {
+        background: '#FFFFFF',
+        lineNumber: '#999999',
+        selection: '#ADD6FF',
+        cursor: '#528bff',
+        text: '#333333'
+      },
+      syntax: {
+        keyword: '#0000FF',
+        string: '#A31515',
+        comment: '#008000',
+        number: '#098658',
+        function: '#795E26',
+        variable: '#001080',
+        operator: '#000000',
+        type: '#267F99'
       }
     };
-
     this.themes.set('light', lightTheme);
-    this.themes.set('dark', darkTheme);
-    this.themes.set('harmony', harmonyTheme);
+
+    // Monokai 主题
+    const monokaiTheme: Theme = {
+      id: 'monokai',
+      name: 'Monokai',
+      colors: {
+        background: '#272822',
+        surface: '#3E3D32',
+        primary: '#F92672',
+        secondary: '#66D9EF',
+        text: '#F8F8F2',
+        textSecondary: '#F8F8F2',
+        border: '#49483E',
+        error: '#F92672',
+        success: '#A6E22E',
+        warning: '#E6DB74'
+      },
+      editor: {
+        background: '#272822',
+        lineNumber: '#90908A',
+        selection: '#49483E',
+        cursor: '#F8F8F0',
+        text: '#F8F8F2'
+      },
+      syntax: {
+        keyword: '#F92672',
+        string: '#E6DB74',
+        comment: '#75715E',
+        number: '#AE81FF',
+        function: '#A6E22E',
+        variable: '#F8F8F2',
+        operator: '#F92672',
+        type: '#66D9EF'
+      }
+    };
+    this.themes.set('monokai', monokaiTheme);
+
+    // Dracula 主题
+    const draculaTheme: Theme = {
+      id: 'dracula',
+      name: 'Dracula',
+      colors: {
+        background: '#282A36',
+        surface: '#44475A',
+        primary: '#BD93F9',
+        secondary: '#FF79C6',
+        text: '#F8F8F2',
+        textSecondary: '#F8F8F2',
+        border: '#6272A4',
+        error: '#FF5555',
+        success: '#50FA7B',
+        warning: '#F1FA8C'
+      },
+      editor: {
+        background: '#282A36',
+        lineNumber: '#6272A4',
+        selection: '#44475A',
+        cursor: '#F8F8F0',
+        text: '#F8F8F2'
+      },
+      syntax: {
+        keyword: '#FF79C6',
+        string: '#F1FA8C',
+        comment: '#6272A4',
+        number: '#BD93F9',
+        function: '#50FA7B',
+        variable: '#F8F8F2',
+        operator: '#FF79C6',
+        type: '#8BE9FD'
+      }
+    };
+    this.themes.set('dracula', draculaTheme);
   }
 
   /**
    * 获取当前主题
    */
-  getCurrentTheme(): Theme {
+  public getCurrentTheme(): Theme {
     return this.currentTheme;
   }
 
   /**
-   * 获取所有可用主题
+   * 获取所有主题
    */
-  getAvailableThemes(): Theme[] {
+  public getAllThemes(): Theme[] {
     return Array.from(this.themes.values());
   }
 
   /**
    * 切换主题
    */
-  switchTheme(themeId: string): boolean {
+  public switchTheme(themeId: string): boolean {
     const theme = this.themes.get(themeId);
     if (!theme) {
-      console.error(`Theme ${themeId} not found`);
+      console.error('主题不存在:', themeId);
       return false;
     }
 
     this.currentTheme = theme;
-    this.notifyThemeChange(theme);
+    this.notifyListeners();
     return true;
   }
 
   /**
-   * 根据系统偏好自动选择主题
+   * 添加主题变化监听器
    */
-  autoSwitchTheme(): void {
-    // 这里可以根据系统设置自动选择明暗主题
-    // 暂时默认使用浅色主题
-    this.switchTheme('light');
-  }
-
-  /**
-   * 获取主题颜色值
-   */
-  getColor(colorKey: keyof ThemeColors): string {
-    const colors = this.currentTheme.colors;
-    switch (colorKey) {
-      case 'background': return colors.background;
-      case 'surface': return colors.surface;
-      case 'surfaceVariant': return colors.surfaceVariant;
-      case 'textPrimary': return colors.textPrimary;
-      case 'textSecondary': return colors.textSecondary;
-      case 'textDisabled': return colors.textDisabled;
-      case 'primary': return colors.primary;
-      case 'primaryVariant': return colors.primaryVariant;
-      case 'secondary': return colors.secondary;
-      case 'secondaryVariant': return colors.secondaryVariant;
-      case 'error': return colors.error;
-      case 'warning': return colors.warning;
-      case 'success': return colors.success;
-      case 'info': return colors.info;
-      case 'divider': return colors.divider;
-      case 'border': return colors.border;
-      case 'codeBackground': return colors.codeBackground;
-      case 'selection': return colors.selection;
-      case 'hover': return colors.hover;
-      default: return '';
-    }
-  }
-
-  /**
-   * 监听主题变化
-   */
-  onThemeChange(callback: Function): void {
-    this.themeChangeListeners.push(callback);
+  public onThemeChange(callback: (theme: Theme) => void): void {
+    this.listeners.push(callback);
   }
 
   /**
    * 移除主题变化监听器
    */
-  removeThemeChangeListener(callback: Function): void {
-    const index = this.themeChangeListeners.indexOf(callback);
+  public removeThemeChangeListener(callback: (theme: Theme) => void): void {
+    const index = this.listeners.indexOf(callback);
     if (index > -1) {
-      this.themeChangeListeners.splice(index, 1);
+      this.listeners.splice(index, 1);
     }
   }
 
   /**
-   * 通知主题变化
+   * 通知所有监听器
    */
-  private notifyThemeChange(theme: Theme): void {
-    this.themeChangeListeners.forEach(listener => {
+  private notifyListeners(): void {
+    this.listeners.forEach(listener => {
       try {
-        listener(theme);
+        listener(this.currentTheme);
       } catch (error) {
-        console.error('Theme change listener error:', error);
+        console.error('主题监听器执行错误:', error);
       }
     });
   }
 
   /**
-   * 应用主题到全局样式（如果需要）
+   * 保存主题偏好设置
    */
-  applyThemeToGlobalStyles(): void {
-    // 这里可以添加逻辑来应用主题到CSS变量或全局样式
-    console.log('Applying theme:', this.currentTheme.name);
+  public saveThemePreference(themeId: string): void {
+    AppStorage.setOrCreate('selectedTheme', themeId);
   }
 
   /**
-   * 保存主题设置到持久化存储
+   * 加载主题偏好设置
    */
-  async saveThemePreference(themeId: string): Promise<boolean> {
-    try {
-      // 这里应该保存到Preferences或其他持久化存储
-      console.log('Saving theme preference:', themeId);
-      return true;
-    } catch (error) {
-      console.error('Failed to save theme preference:', error);
-      return false;
+  public loadThemePreference(): void {
+    const savedThemeId = AppStorage.get<string>('selectedTheme');
+    if (savedThemeId && this.themes.has(savedThemeId)) {
+      this.switchTheme(savedThemeId);
     }
   }
 
   /**
-   * 从持久化存储加载主题设置
+   * 获取下一个主题（用于主题切换循环）
    */
-  async loadThemePreference(): Promise<string | null> {
-    try {
-      // 这里应该从Preferences或其他持久化存储加载
-      console.log('Loading theme preference');
-      return 'light'; // 默认返回浅色主题
-    } catch (error) {
-      console.error('Failed to load theme preference:', error);
-      return null;
-    }
+  public getNextTheme(): Theme {
+    const themeIds = Array.from(this.themes.keys());
+    const currentIndex = themeIds.indexOf(this.currentTheme.id);
+    const nextIndex = (currentIndex + 1) % themeIds.length;
+    return this.themes.get(themeIds[nextIndex])!;
   }
 }
+

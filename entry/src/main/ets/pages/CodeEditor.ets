@@ -1,619 +1,486 @@
+/**
+ * xxCode 主编辑器页面
+ * 完整功能的代码编辑器，支持多标签、语法高亮、主题切换等
+ */
+import { router } from '@kit.ArkUI';
+import { picker } from '@kit.CoreFileKit';
+import { common } from '@kit.AbilityKit';
 import { RealFileService } from '../services/RealFileService';
+import { ThemeService, Theme } from '../services/ThemeService';
+import { MarkdownService } from '../services/MarkdownService';
 import { FileItem, EditorTab } from '../models/FileModel';
 import { HighlightedText } from '../components/HighlightedText';
-import { MarkdownPreview } from '../components/MarkdownPreview';
-import { MarkdownService } from '../services/MarkdownService';
-import { ThemeService, Theme } from '../services/ThemeService';
-import { SearchDialog } from '../components/SearchDialog';
-import { SearchResult } from '../services/SearchService';
-import { common } from '@kit.AbilityKit';
 import { FileTreeItem } from '../components/FileTreeItem';
+import { WelcomeGuide } from '../components/WelcomeGuide';
+import { SearchDialog } from '../components/SearchDialog';
+import { BreakpointService, Breakpoint } from '../services/BreakpointService';
 
 @Entry
 @Component
 struct CodeEditor {
-  private fileService: RealFileService = new RealFileService();
-  private context: common.UIAbilityContext | null = null;
-  private markdownService: MarkdownService = new MarkdownService();
-  private themeService: ThemeService = new ThemeService();
-
-  @State currentFile: string = '';
-  @State isFileTreeVisible: boolean = true;
-  @State fileTree: FileItem[] = [];
-  @State currentFolder: string = '';
   @State tabs: EditorTab[] = [];
   @State activeTab: EditorTab | null = null;
-  @State editorContent: string = '';
-  @State isLoading: boolean = false;
+  @State isFileTreeVisible: boolean = true;
+  @State fileTree: FileItem[] = [];
   @State expandedFolders: Set<string> = new Set();
   @State isPreviewMode: boolean = false;
-  @State isMarkdownFile: boolean = false;
+  @State showWelcomeGuide: boolean = false;
   @State showSearchDialog: boolean = false;
-  @State currentTheme: Theme = this.themeService.getCurrentTheme();
-
-  private autoSaveInterval: number | null = null;
+  @State currentTheme: Theme = ThemeService.getInstance().getCurrentTheme();
+  @State currentBreakpoint: Breakpoint = 'sm';
+  
+  private context: common.UIAbilityContext | null = null;
+  private fileService: RealFileService = new RealFileService();
+  private themeService: ThemeService = ThemeService.getInstance();
+  private markdownService: MarkdownService = MarkdownService.getInstance();
+  private breakpointService: BreakpointService = BreakpointService.getInstance();
+  
+  private searchDialogController: CustomDialogController = new CustomDialogController({
+    builder: SearchDialog({
+      content: this.activeTab?.content || '',
+      onClose: () => {
+        this.showSearchDialog = false;
+      }
+    }),
+    autoCancel: true
+  });
 
   aboutToAppear() {
     this.context = this.getUIContext().getHostContext() as common.UIAbilityContext;
     this.fileService.setContext(this.context);
-    this.setupThemeListener();
-    this.loadSavedTheme();
-    this.setupAutoSave();
-  }
-
-  aboutToDisappear() {
-    this.cleanupAutoSave();
-  }
-
-  private setupThemeListener() {
+    
+    // 注册断点系统
+    this.breakpointService.register();
+    this.currentBreakpoint = this.breakpointService.getCurrentBreakpoint();
+    this.breakpointService.onChange((breakpoint: Breakpoint) => {
+      this.currentBreakpoint = breakpoint;
+      if (this.breakpointService.isPhone()) {
+        this.isFileTreeVisible = false;
+      }
+    });
+    
+    // 手机默认隐藏文件树
+    if (this.breakpointService.isPhone()) {
+      this.isFileTreeVisible = false;
+    }
+    
+    // 监听主题变化
     this.themeService.onThemeChange((theme: Theme) => {
       this.currentTheme = theme;
     });
+    
+    // 检查首次启动
+    this.checkFirstLaunch();
+    
+    // 创建欢迎标签
+    this.createWelcomeTab();
   }
 
-  private async loadSavedTheme() {
+  aboutToDisappear() {
+    this.breakpointService.unregister();
+  }
+
+  private checkFirstLaunch() {
+    const hasLaunched = AppStorage.get<boolean>('hasLaunched');
+    if (!hasLaunched) {
+      setTimeout(() => {
+        this.showWelcomeGuide = true;
+      }, 500);
+      AppStorage.setOrCreate('hasLaunched', true);
+    }
+  }
+
+  private createWelcomeTab() {
+    const welcomeTab = this.fileService.createNewTab(
+      'Welcome.md',
+      '',
+      `# 欢迎使用 xxCode 编辑器
+
+## 🚀 快速开始
+
+### 打开文件
+点击右上角的"打开"按钮，选择您想要编辑的代码文件。
+
+### 支持的语言
+- JavaScript / TypeScript / ArkTS
+- Python / Java / C / C++
+- HTML / CSS / JSON
+- Markdown
+
+### 主题切换
+点击右上角的"🎨"图标切换主题：
+- 深色主题
+- 浅色主题
+- Monokai
+- Dracula
+
+### 快捷功能
+- **Ctrl+S**: 保存文件
+- **Ctrl+F**: 搜索
+- **Ctrl+H**: 替换
+
+## 📝 开始编码吧！
+
+修改此文本或打开新文件即可开始。`
+    );
+    this.fileService.addTab(welcomeTab);
+    this.updateTabs();
+  }
+
+  private updateTabs() {
+    this.tabs = this.fileService.getTabs();
+    this.activeTab = this.fileService.getActiveTab();
+    this.isPreviewMode = this.activeTab ? 
+      this.markdownService.isMarkdownFile(this.activeTab.fileName) : false;
+  }
+
+  private async openFile() {
     try {
-      const savedThemeId = await this.themeService.loadThemePreference();
-      if (savedThemeId) {
-        this.themeService.switchTheme(savedThemeId);
-      }
-    } catch (error) {
-      console.error('加载主题设置失败:', error);
-    }
-  }
-
-  build() {
-    Navigation() {
-        Column() {
-        // 顶部工具栏
-        this.buildToolbar()
-
-        // 标签栏
-          if (this.tabs.length > 0) {
-          this.buildTabBar()
-          }
-
-        // 主工作区
-          Row() {
-          // 侧边栏
-            if (this.isFileTreeVisible) {
-            this.buildSidebar()
-            }
-
-          // 编辑器区域
-          this.buildEditor()
-          }
-          .layoutWeight(1)
-        .backgroundColor($r('app.color.background_primary'))
-        }
-        .width('100%')
-      .height('100%')
-
-      // 搜索对话框
-        if (this.showSearchDialog) {
-          SearchDialog({
-            visible: this.showSearchDialog,
-          onClose: () => { this.showSearchDialog = false; },
-            onResultSelect: (result: SearchResult) => {
-              this.handleSearchResult(result);
-            }
-          })
-        }
-      }
-    .hideTitleBar(true)
-  }
-
-  @Builder
-  buildToolbar(): void {
-      Row() {
-      // 左侧操作按钮
-        Row() {
-        this.buildToolButton('📁', '打开文件夹', (): void => { 
-          console.log('[按钮点击] 打开文件夹');
-          this.openFolderDialog(); 
-        })
-        this.buildToolButton('📄', '打开文件', (): void => { 
-          console.log('[按钮点击] 打开文件');
-          this.openFileDialog(); 
-        })
-        this.buildToolButton('💾', '保存', (): void => { 
-          console.log('[按钮点击] 保存文件');
-          this.saveCurrentFile(); 
-        }, !!this.activeTab)
-        
-        // Markdown 预览切换
-        if (this.isMarkdownFile) {
-          Divider()
-            .vertical(true)
-            .height(20)
-            .color($r('app.color.border_light'))
-            .margin({ left: 12, right: 12 })
-          
-          this.buildToggleButton(this.isPreviewMode ? '📝 编辑' : '👁 预览', (): void => { this.togglePreviewMode(); })
-          }
-        }
-        .alignItems(VerticalAlign.Center)
-
-      Blank()
-
-      // 右侧功能按钮
-        Row() {
-          this.buildIconButton('🔍', (): void => { this.showSearchDialog = true; })
-        this.buildIconButton('🎨', (): void => { this.cycleTheme(); })
-        this.buildIconButton(this.isFileTreeVisible ? '◧' : '◨', (): void => {
-          this.isFileTreeVisible = !this.isFileTreeVisible;
-        })
-        }
-        .alignItems(VerticalAlign.Center)
-      }
-    .width('100%')
-    .height(56)
-    .padding({ left: 20, right: 20 })
-      .backgroundColor($r('app.color.surface_elevated'))
-    .border({ width: { bottom: 1 }, color: $r('app.color.border_light') })
-  }
-
-  @Builder
-  buildToolButton(icon: string, label: string, action: () => void, enabled: boolean = true): void {
-    Button({ type: ButtonType.Normal, stateEffect: true }) {
-      Row() {
-        Text(icon).fontSize(16).margin({ right: 6 })
-        Text(label).fontSize(14).fontWeight(FontWeight.Medium)
-      }
-    }
-    .height(36)
-    .padding({ left: 14, right: 14 })
-    .backgroundColor(Color.Transparent)
-    .borderRadius(8)
-    .fontColor(enabled ? $r('app.color.text_primary') : $r('app.color.text_tertiary'))
-    .enabled(enabled)
-    .onClick(action)
-    .margin({ right: 8 })
-    .stateStyles({
-      normal: {
-        .backgroundColor(Color.Transparent)
-      },
-      pressed: {
-        .backgroundColor($r('app.color.hover_bg'))
-      }
-    })
-  }
-
-  @Builder
-  buildToggleButton(label: string, action: () => void): void {
-    Button({ type: ButtonType.Normal }) {
-      Text(label).fontSize(14).fontWeight(FontWeight.Medium)
-    }
-    .height(36)
-    .padding({ left: 14, right: 14 })
-    .backgroundColor($r('app.color.primary_brand'))
-    .fontColor(Color.White)
-    .borderRadius(8)
-    .onClick(action)
-  }
-
-  @Builder
-  buildIconButton(icon: string, action: () => void): void {
-    Button({ type: ButtonType.Circle, stateEffect: true }) {
-      Text(icon).fontSize(18)
-    }
-        .width(36)
-        .height(36)
-    .backgroundColor(Color.Transparent)
-    .fontColor($r('app.color.text_secondary'))
-    .onClick(action)
-    .margin({ left: 8 })
-    .stateStyles({
-      normal: {
-        .backgroundColor(Color.Transparent)
-      },
-      pressed: {
-        .backgroundColor($r('app.color.hover_bg'))
-      }
-    })
-  }
-
-  @Builder
-  buildTabBar(): void {
-    Scroll() {
-      Row() {
-        ForEach(this.tabs, (tab: EditorTab) => {
-          this.buildTab(tab)
-        })
-      }
-      .padding({ left: 12, right: 12, top: 8, bottom: 0 })
-    }
-    .scrollable(ScrollDirection.Horizontal)
-    .scrollBar(BarState.Off)
-    .height(44)
-    .backgroundColor($r('app.color.background_secondary'))
-  }
-
-  @Builder
-  buildTab(tab: EditorTab): void {
-    Row() {
-      Text(this.getFileIcon(tab.fileName))
-        .fontSize(14)
-        .margin({ right: 8 })
-
-      Text(tab.fileName)
-        .fontSize(13)
-        .fontColor(tab.isActive ? $r('app.color.primary_brand') : $r('app.color.text_primary'))
-        .fontWeight(tab.isActive ? FontWeight.Medium : FontWeight.Normal)
-        .maxLines(1)
-        .layoutWeight(1)
-
-      if (tab.isModified) {
-        Circle()
-          .width(6)
-          .height(6)
-          .fill($r('app.color.warning_color'))
-          .margin({ left: 6, right: 6 })
-      }
-
-      Button({ type: ButtonType.Circle }) {
-        Text('×').fontSize(16).fontColor($r('app.color.text_tertiary'))
-      }
-      .width(18)
-      .height(18)
-      .backgroundColor(Color.Transparent)
-      .onClick((): void => { this.closeTab(tab.id); })
-    }
-    .height(36)
-    .padding({ left: 12, right: 8 })
-    .backgroundColor(tab.isActive ? $r('app.color.background_primary') : Color.Transparent)
-    .borderRadius({ topLeft: 8, topRight: 8 })
-          .margin({ right: 4 })
-    .onClick((): void => { this.switchToTab(tab.id); })
-  }
-
-  @Builder
-  buildSidebar(): void {
-    Column() {
-      // 文件浏览器头部
-      Row() {
-        Text('文件浏览器')
-          .fontSize(14)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .layoutWeight(1)
-
-        Button({ type: ButtonType.Circle }) {
-          Text('⟳').fontSize(16)
-        }
-        .width(28)
-        .height(28)
-        .backgroundColor(Color.Transparent)
-          .fontColor($r('app.color.text_secondary'))
-        .onClick((): void => { this.refreshFileTree(); })
-      }
-      .width('100%')
-      .padding(16)
-      .backgroundColor($r('app.color.surface_elevated'))
-
-      Divider().color($r('app.color.border_light'))
-
-      // 文件树
-      if (this.fileTree.length === 0) {
-        this.buildEmptySidebar()
-      } else {
-        Scroll() {
-          Column() {
-                ForEach(this.fileTree, (item: FileItem) => {
-                  FileTreeItem({
-                    fileItem: item,
-                    level: 0,
-                    isExpanded: this.expandedFolders.has(item.path),
-                    isSelected: this.activeTab?.filePath === item.path,
-                onFileClick: (file: FileItem): void => { this.onFileClick(file); },
-                onFolderToggle: (file: FileItem): void => { this.toggleFolder(file); }
-                  })
-                }, (item: FileItem) => item.path)
-              }
-          .padding(8)
-        }
-        .layoutWeight(1)
-      }
-    }
-    .width(280)
-    .height('100%')
-    .backgroundColor($r('app.color.surface_elevated'))
-    .border({ width: { right: 1 }, color: $r('app.color.border_light') })
-  }
-
-  @Builder
-  buildEmptySidebar(): void {
-    Column() {
-      Text('📂').fontSize(48).margin({ bottom: 16 })
-      Text('未打开文件夹').fontSize(16).fontColor($r('app.color.text_secondary')).margin({ bottom: 8 })
-      Text('点击上方按钮打开').fontSize(13).fontColor($r('app.color.text_tertiary'))
-    }
-    .justifyContent(FlexAlign.Center)
-    .layoutWeight(1)
-  }
-
-  @Builder
-  buildEditor(): void {
-      Column() {
-      if (!this.activeTab) {
-        this.buildWelcome()
-      } else if (this.isMarkdownFile && this.isPreviewMode) {
-        this.buildMarkdownPreview()
-      } else {
-        this.buildTextEditor()
-      }
-    }
-      .layoutWeight(1)
-    .width('100%')
-    .height('100%')
-    .backgroundColor($r('app.color.editor_background'))
-  }
-
-  @Builder
-  buildWelcome(): void {
-    Column() {
-      Text('</>').fontSize(56).fontColor($r('app.color.primary_brand')).margin({ bottom: 24 })
-      Text('选择一个文件开始编辑').fontSize(18).fontColor($r('app.color.text_secondary')).margin({ bottom: 32 })
-      
-      Button('打开文件')
-            .fontSize(16)
-        .backgroundColor($r('app.color.primary_brand'))
-        .fontColor(Color.White)
-          .borderRadius(8)
-        .padding({ left: 24, right: 24, top: 12, bottom: 12 })
-        .onClick((): void => { this.openFileDialog(); })
-        }
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-    .width('100%')
-    .height('100%')
-  }
-
-  @Builder
-  buildTextEditor(): void {
-      Column() {
-      HighlightedText({
-        code: this.editorContent,
-        language: this.activeTab?.language || 'javascript',
-        fontSize: 15,
-        editable: true,
-        onChange: (value: string): void => {
-          this.editorContent = value;
-          if (this.activeTab) {
-            this.activeTab.content = value;
-            this.activeTab.isModified = true;
-          }
-        }
-      })
-    }
-    .width('100%')
-    .height('100%')
-  }
-
-  @Builder
-  buildMarkdownPreview(): void {
-    Scroll() {
-      MarkdownPreview({
-        markdown: this.editorContent,
-        fontSize: 15
-      })
-      .width('100%')
-      .padding(24)
-    }
-      .width('100%')
-    .height('100%')
-  }
-
-  // === 文件操作方法 ===
-  async openFolderDialog(): Promise<void> {
-    try {
-      this.isLoading = true;
-      console.log('开始打开文件夹选择器...');
-      const folderPath = await this.fileService.openFolderPicker();
-      console.log('选择的文件夹:', folderPath);
-      
-      if (folderPath) {
-        this.currentFolder = folderPath;
-        await this.loadFileTree();
-      }
-    } catch (error) {
-      console.error('打开文件夹失败:', error);
-      console.error('错误详情:', JSON.stringify(error));
-    } finally {
-      this.isLoading = false;
-    }
-  }
-
-  async loadFileTree() {
-    try {
-      if (!this.currentFolder) return;
-      this.isLoading = true;
-      this.fileTree = await this.fileService.readDirectoryTree(this.currentFolder, 5);
-    } catch (error) {
-      console.error('加载文件树失败:', error);
-    } finally {
-      this.isLoading = false;
-    }
-  }
-
-  async refreshFileTree() {
-    await this.loadFileTree();
-  }
-
-  async openFileDialog(): Promise<void> {
-    console.log('=== 开始打开文件对话框 ===');
-    try {
-      console.log('[CodeEditor] 1. 调用 fileService.openFilePicker()');
-      const filePaths = await this.fileService.openFilePicker();
-      
-      console.log('[CodeEditor] 2. 返回结果类型:', typeof filePaths);
-      console.log('[CodeEditor] 3. 返回结果:', JSON.stringify(filePaths));
-      console.log('[CodeEditor] 4. 是否为数组:', Array.isArray(filePaths));
-      console.log('[CodeEditor] 5. 数组长度:', filePaths?.length);
-      
-      if (filePaths && filePaths.length > 0) {
-        console.log('[CodeEditor] 6. 开始打开文件，数量:', filePaths.length);
-        for (let i = 0; i < filePaths.length; i++) {
-          const filePath = filePaths[i];
-          console.log(`[CodeEditor] 7.${i} 打开文件:`, filePath);
-          await this.openFile(filePath);
-        }
-        console.log('[CodeEditor] 8. 所有文件打开完成');
-          } else {
-        console.log('[CodeEditor] ⚠️ 未选择任何文件或返回为空');
-      }
-    } catch (error) {
-      console.error('[CodeEditor] ❌ 打开文件失败:', error);
-      console.error('[CodeEditor] 错误类型:', error?.constructor?.name);
-      console.error('[CodeEditor] 错误消息:', error?.message);
-      console.error('[CodeEditor] 错误详情:', JSON.stringify(error));
-    }
-    console.log('=== 文件对话框处理结束 ===');
-  }
-
-  async openFile(filePath: string): Promise<void> {
-    try {
-      console.log('正在打开文件:', filePath);
-      
-      const tab = this.fileService.openFileInTab(filePath);
-      console.log('创建标签页:', tab.fileName);
-      
-      const content = await this.fileService.readFileContent(filePath);
-      console.log('读取文件内容，长度:', content.length);
-      
-      tab.content = content;
-      this.fileService.updateTabContent(tab.id, content);
-      
-      // 更新状态
-      this.tabs = this.fileService.getTabs();
-      this.activeTab = this.fileService.getActiveTab();
-      this.editorContent = content;
-      this.isMarkdownFile = this.markdownService.isMarkdownFile(tab.fileName);
-      this.isPreviewMode = this.isMarkdownFile;
-      
-      console.log('文件打开成功:', {
-        tabsCount: this.tabs.length,
-        activeTab: this.activeTab?.fileName,
-        contentLength: this.editorContent.length,
-        isMarkdown: this.isMarkdownFile
-      });
-      
-      // 强制刷新状态
-      this.tabs = [...this.tabs];
+      const content = await this.fileService.openFile();
+      // 这里应该获取文件名和路径，简化处理
+      const fileName = '新文件.txt';
+      const tab = this.fileService.createNewTab(fileName, '', content);
+      this.fileService.addTab(tab);
+      this.updateTabs();
     } catch (error) {
       console.error('打开文件失败:', error);
-      console.error('错误详情:', JSON.stringify(error));
     }
   }
 
-  async saveCurrentFile() {
-    if (!this.activeTab) return;
+  private async saveFile() {
+    if (!this.activeTab || !this.activeTab.filePath) {
+      return;
+    }
+    
     try {
-      const success = await this.fileService.writeFileContent(
-        this.activeTab.filePath,
-        this.editorContent
-      );
-      if (success) {
-        this.fileService.markTabSaved(this.activeTab.id);
-        this.activeTab.isModified = false;
-      }
+      await this.fileService.saveFile(this.activeTab.filePath, this.activeTab.content);
+      this.fileService.markTabAsModified(this.activeTab.id, false);
+      this.updateTabs();
     } catch (error) {
       console.error('保存文件失败:', error);
     }
   }
 
-  switchToTab(tabId: string) {
+  private switchTab(tabId: string) {
     this.fileService.setActiveTab(tabId);
-    this.tabs = this.fileService.getTabs();
-    this.activeTab = this.fileService.getActiveTab();
+    this.updateTabs();
+  }
+
+  private closeTab(tabId: string) {
+    this.fileService.removeTab(tabId);
+    this.updateTabs();
+  }
+
+  private onContentChange(content: string) {
     if (this.activeTab) {
-      this.loadTabContent(this.activeTab);
-      this.isMarkdownFile = this.markdownService.isMarkdownFile(this.activeTab.fileName);
-      if (!this.isMarkdownFile) {
-        this.isPreviewMode = false;
-      }
+      this.fileService.updateTabContent(this.activeTab.id, content);
+      this.updateTabs();
     }
-  }
-
-  async loadTabContent(tab: EditorTab) {
-    try {
-      this.editorContent = await this.fileService.readFileContent(tab.filePath);
-    } catch (error) {
-      console.error('加载标签页内容失败:', error);
-    }
-  }
-
-  closeTab(tabId: string) {
-    this.fileService.closeTab(tabId);
-    this.tabs = this.fileService.getTabs();
-    this.activeTab = this.fileService.getActiveTab();
-    if (this.activeTab) {
-      this.loadTabContent(this.activeTab);
-    } else {
-      this.editorContent = '';
-      this.isMarkdownFile = false;
-      this.isPreviewMode = false;
-    }
-  }
-
-  togglePreviewMode() {
-    if (!this.isMarkdownFile) return;
-    this.isPreviewMode = !this.isPreviewMode;
-  }
-
-  onFileClick(file: FileItem) {
-    if (!file.isDirectory) {
-      this.openFile(file.path);
-    }
-  }
-
-  toggleFolder(folder: FileItem) {
-    if (this.expandedFolders.has(folder.path)) {
-      this.expandedFolders.delete(folder.path);
-    } else {
-      this.expandedFolders.add(folder.path);
-    }
-    this.expandedFolders = new Set(this.expandedFolders);
   }
 
   private cycleTheme() {
-    const themes = this.themeService.getAvailableThemes();
-    const currentIndex = themes.findIndex(t => t.id === this.currentTheme.id);
-    const nextIndex = (currentIndex + 1) % themes.length;
-    const nextTheme = themes[nextIndex];
-    if (this.themeService.switchTheme(nextTheme.id)) {
-      this.themeService.saveThemePreference(nextTheme.id);
-    }
+    const nextTheme = this.themeService.getNextTheme();
+    this.themeService.switchTheme(nextTheme.id);
+    this.themeService.saveThemePreference(nextTheme.id);
   }
 
-  private handleSearchResult(result: SearchResult) {
-    this.openFile(result.filePath);
-  }
+  build() {
+    Column() {
+      // 顶部工具栏
+      this.buildToolbar()
 
-  private getFileIcon(fileName: string): string {
-    const ext = fileName.split('.').pop()?.toLowerCase() || '';
-    const icons: Record<string, string> = {
-      'js': '🟨', 'ts': '🔷', 'ets': '🔷', 'py': '🐍',
-      'java': '☕', 'html': '🌐', 'css': '🎨', 'json': '📋',
-      'md': '📝', 'txt': '📄'
-    };
-    return icons[ext] || '📄';
-  }
-
-  private setupAutoSave() {
-    this.autoSaveInterval = setInterval(() => {
-      this.tabs.forEach(tab => {
-        if (tab.isModified) {
-          this.fileService.writeFileContent(tab.filePath, tab.content);
-          this.fileService.markTabSaved(tab.id);
+      Row() {
+        // 文件树（侧边栏）
+        if (this.isFileTreeVisible) {
+          this.buildSidebar()
         }
-      });
-    }, 5 * 60 * 1000);
+
+        // 主编辑区
+        Column() {
+          // 标签栏
+          if (this.tabs.length > 0) {
+            this.buildTabBar()
+          }
+
+          // 编辑器内容
+          if (this.activeTab) {
+            HighlightedText({
+              code: this.activeTab.content,
+              language: this.activeTab.language,
+              isEditable: true,
+              fontSize: 14
+            })
+          } else {
+            this.buildEmptyState()
+          }
+        }
+        .layoutWeight(1)
+        .height('100%')
+        .backgroundColor(this.currentTheme.editor.background)
+      }
+      .layoutWeight(1)
+      .width('100%')
+
+      // 欢迎引导
+      if (this.showWelcomeGuide) {
+        WelcomeGuide({
+          visible: this.showWelcomeGuide,
+          onClose: () => {
+            this.showWelcomeGuide = false;
+          }
+        })
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.currentTheme.colors.background)
   }
 
-  private cleanupAutoSave() {
-    if (this.autoSaveInterval) {
-      clearInterval(this.autoSaveInterval);
+  @Builder
+  buildToolbar(): void {
+    Row() {
+      // 左侧：返回和文件树切换
+      Row({ space: 8 }) {
+        Button({ type: ButtonType.Circle }) {
+          Text('←')
+            .fontSize(18)
+            .fontColor(this.currentTheme.colors.text)
+        }
+        .width(36)
+        .height(36)
+        .backgroundColor(Color.Transparent)
+        .onClick(() => {
+          router.back();
+        })
+
+        Button({ type: ButtonType.Circle }) {
+          Text('☰')
+            .fontSize(16)
+            .fontColor(this.currentTheme.colors.text)
+        }
+        .width(36)
+        .height(36)
+        .backgroundColor(Color.Transparent)
+        .onClick(() => {
+          this.isFileTreeVisible = !this.isFileTreeVisible;
+        })
+      }
+
+      // 中间：标题
+      Text('xxCode')
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.currentTheme.colors.text)
+        .layoutWeight(1)
+        .margin({ left: 12 })
+
+      // 右侧：操作按钮
+      Row({ space: 8 }) {
+        Button({ type: ButtonType.Circle }) {
+          Text('🔍')
+            .fontSize(16)
+        }
+        .width(36)
+        .height(36)
+        .backgroundColor(Color.Transparent)
+        .onClick(() => {
+          this.showSearchDialog = true;
+          this.searchDialogController.open();
+        })
+
+        Button({ type: ButtonType.Circle }) {
+          Text('🎨')
+            .fontSize(16)
+        }
+        .width(36)
+        .height(36)
+        .backgroundColor(Color.Transparent)
+        .onClick(() => {
+          this.cycleTheme();
+        })
+
+        Button({ type: ButtonType.Normal }) {
+          Text('打开')
+            .fontSize(13)
+            .fontColor(this.currentTheme.colors.text)
+        }
+        .height(32)
+        .padding({ left: 12, right: 12 })
+        .backgroundColor(this.currentTheme.colors.surface)
+        .borderRadius(6)
+        .onClick(() => {
+          this.openFile();
+        })
+
+        Button({ type: ButtonType.Normal }) {
+          Text('保存')
+            .fontSize(13)
+            .fontColor(Color.White)
+        }
+        .height(32)
+        .padding({ left: 12, right: 12 })
+        .backgroundColor(this.currentTheme.colors.primary)
+        .borderRadius(6)
+        .onClick(() => {
+          this.saveFile();
+        })
+      }
     }
+    .width('100%')
+    .height(56)
+    .padding({ left: 12, right: 12 })
+    .backgroundColor(this.currentTheme.colors.surface)
+    .border({ width: { bottom: 1 }, color: this.currentTheme.colors.border })
+  }
+
+  @Builder
+  buildSidebar(): void {
+    Column() {
+      Row() {
+        Text('文件')
+          .fontSize(14)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.currentTheme.colors.text)
+          .layoutWeight(1)
+
+        if (this.breakpointService.isPhone()) {
+          Button({ type: ButtonType.Circle }) {
+            Text('×')
+              .fontSize(18)
+              .fontColor(this.currentTheme.colors.textSecondary)
+          }
+          .width(28)
+          .height(28)
+          .backgroundColor(Color.Transparent)
+          .onClick(() => {
+            this.isFileTreeVisible = false;
+          })
+        }
+      }
+      .width('100%')
+      .padding(12)
+
+      Divider().color(this.currentTheme.colors.border)
+
+      Scroll() {
+        Column() {
+          if (this.fileTree.length > 0) {
+            ForEach(this.fileTree, (item: FileItem) => {
+              FileTreeItem({
+                fileItem: item,
+                level: 0,
+                isExpanded: this.expandedFolders.has(item.path),
+                isSelected: false,
+                onFileClick: (file: FileItem) => {},
+                onFolderToggle: (folder: FileItem) => {
+                  if (this.expandedFolders.has(folder.path)) {
+                    this.expandedFolders.delete(folder.path);
+                  } else {
+                    this.expandedFolders.add(folder.path);
+                  }
+                  this.expandedFolders = new Set(this.expandedFolders);
+                }
+              })
+            }, (item: FileItem) => item.path)
+          } else {
+            this.buildEmptySidebar()
+          }
+        }
+        .padding(8)
+      }
+      .layoutWeight(1)
+    }
+    .width(this.breakpointService.isPhone() ? '85%' : 
+           this.breakpointService.isTablet() ? 320 : 360)
+    .height('100%')
+    .backgroundColor(this.currentTheme.colors.surface)
+    .border({ width: { right: 1 }, color: this.currentTheme.colors.border })
+  }
+
+  @Builder
+  buildEmptySidebar(): void {
+    Column() {
+      Text('📂')
+        .fontSize(48)
+        .margin({ bottom: 16 })
+      
+      Text('暂无文件')
+        .fontSize(14)
+        .fontColor(this.currentTheme.colors.textSecondary)
+    }
+    .width('100%')
+    .height(200)
+    .justifyContent(FlexAlign.Center)
+  }
+
+  @Builder
+  buildTabBar(): void {
+    Scroll() {
+      Row({ space: 4 }) {
+        ForEach(this.tabs, (tab: EditorTab) => {
+          Row({ space: 6 }) {
+            Text(tab.fileName)
+              .fontSize(13)
+              .fontColor(tab.isActive ? this.currentTheme.colors.primary : this.currentTheme.colors.text)
+              .fontWeight(tab.isActive ? FontWeight.Medium : FontWeight.Normal)
+
+            if (tab.isModified) {
+              Circle()
+                .width(6)
+                .height(6)
+                .fill(this.currentTheme.colors.warning)
+            }
+
+            Button({ type: ButtonType.Circle }) {
+              Text('×')
+                .fontSize(14)
+                .fontColor(this.currentTheme.colors.textSecondary)
+            }
+            .width(16)
+            .height(16)
+            .backgroundColor(Color.Transparent)
+            .onClick(() => {
+              this.closeTab(tab.id);
+            })
+          }
+          .height(36)
+          .padding({ left: 12, right: 8 })
+          .backgroundColor(tab.isActive ? this.currentTheme.colors.surface : Color.Transparent)
+          .borderRadius(6)
+          .onClick(() => {
+            this.switchTab(tab.id);
+          })
+        }, (tab: EditorTab) => tab.id)
+      }
+    }
+    .scrollable(ScrollDirection.Horizontal)
+    .scrollBar(BarState.Off)
+    .width('100%')
+    .height(44)
+    .padding({ left: 8, right: 8 })
+    .backgroundColor(this.currentTheme.editor.background)
+    .border({ width: { bottom: 1 }, color: this.currentTheme.colors.border })
+  }
+
+  @Builder
+  buildEmptyState(): void {
+    Column() {
+      Text('📝')
+        .fontSize(64)
+        .margin({ bottom: 20 })
+      
+      Text('没有打开的文件')
+        .fontSize(18)
+        .fontColor(this.currentTheme.colors.text)
+        .margin({ bottom: 8 })
+      
+      Text('点击"打开"按钮选择文件')
+        .fontSize(14)
+        .fontColor(this.currentTheme.colors.textSecondary)
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor(this.currentTheme.editor.background)
   }
 }

@@ -1,314 +1,218 @@
+/**
+ * 搜索对话框组件
+ * 提供搜索和替换功能的UI界面
+ */
 import { SearchService, SearchOptions, SearchResult } from '../services/SearchService';
+import { ThemeService, Theme } from '../services/ThemeService';
+import { CommonConstants } from '../common/CommonConstants';
 
-@Component
+@CustomDialog
 export struct SearchDialog {
-  @Prop visible: boolean = false;
-  @Prop onClose: () => void = () => {};
-  @Prop onResultSelect: (result: SearchResult) => void = () => {};
-
-  @State searchQuery: string = '';
+  @State searchText: string = '';
+  @State replaceText: string = '';
+  @State caseSensitive: boolean = false;
+  @State wholeWord: boolean = false;
+  @State useRegex: boolean = false;
   @State searchResults: SearchResult[] = [];
-  @State isSearching: boolean = false;
-  @State showOptions: boolean = false;
-  @State searchOptions: SearchOptions = {
-    query: '',
-    caseSensitive: false,
-    useRegex: false,
-    searchInContent: true,
-    searchInFileNames: true,
-    fileExtensions: []
-  };
+  @State currentResultIndex: number = 0;
+  @State showReplaceOptions: boolean = false;
+  
+  @State private currentTheme: Theme = ThemeService.getInstance().getCurrentTheme();
+  
+  controller: CustomDialogController = new CustomDialogController({
+    builder: SearchDialog()
+  });
+  
+  content: string = '';
+  onSearch?: (results: SearchResult[]) => void;
+  onReplace?: (newContent: string) => void;
+  onClose?: () => void;
+  
+  private searchService: SearchService = SearchService.getInstance();
+  private themeService: ThemeService = ThemeService.getInstance();
 
-  private searchService: SearchService = new SearchService();
-
-  build() {
-    Column() {
-      if (this.visible) {
-        // 搜索头部
-        this.buildSearchHeader()
-
-        // 搜索选项
-        if (this.showOptions) {
-          this.buildSearchOptions()
-        }
-
-        // 搜索结果
-        this.buildSearchResults()
-      }
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(Color.White)
+  aboutToAppear() {
+    this.themeService.onThemeChange((theme: Theme) => {
+      this.currentTheme = theme;
+    });
   }
 
-  @Builder
-  buildSearchHeader() {
-    Column() {
-      // 搜索输入框
-      Row() {
-        TextInput({
-          placeholder: '搜索文件内容或文件名...',
-          text: this.searchQuery
-        })
-        .layoutWeight(1)
-        .height(40)
-        .backgroundColor(Color.White)
-        .borderRadius(8)
-        .padding(12)
-        .fontSize(14)
-        .onChange((value: string) => {
-          this.searchQuery = value;
-          this.searchOptions.query = value;
-          this.debounceSearch();
-        })
-
-        // 选项按钮
-        Button(this.showOptions ? '收起' : '选项')
-          .width(60)
-          .height(40)
-          .backgroundColor(Color.White)
-          .fontColor(Color.Black)
-          .margin({ left: 8 })
-          .onClick(() => {
-            this.showOptions = !this.showOptions;
-          })
-
-        // 关闭按钮
-        Button('×')
-          .width(40)
-          .height(40)
-          .backgroundColor(Color.White)
-          .fontColor(Color.Black)
-          .margin({ left: 4 })
-          .onClick(() => {
-            this.closeDialog();
-          })
-      }
-      .padding(16)
-
-      // 搜索建议（如果没有输入）
-      if (!this.searchQuery.trim()) {
-        this.buildSearchSuggestions()
-      }
-    }
-    .backgroundColor(Color.White)
-    .border({ width: { bottom: 1 }, color: Color.Gray })
-  }
-
-  @Builder
-  buildSearchOptions(): void {
-    Column() {
-      // 大小写敏感
-      Row() {
-        Checkbox()
-          .select(this.searchOptions.caseSensitive)
-          .onChange((value: boolean) => {
-            this.searchOptions.caseSensitive = value;
-          })
-
-        Text('大小写敏感')
-          .fontSize(14)
-          .margin({ left: 8 })
-      }
-
-      // 正则表达式
-      Row() {
-        Checkbox()
-          .select(this.searchOptions.useRegex)
-          .onChange((value: boolean) => {
-            this.searchOptions.useRegex = value;
-          })
-
-        Text('正则表达式')
-          .fontSize(14)
-          .margin({ left: 8 })
-      }
-
-      // 搜索范围
-      Row() {
-        Checkbox()
-          .select(this.searchOptions.searchInContent)
-          .onChange((value: boolean) => {
-            this.searchOptions.searchInContent = value;
-          })
-
-        Text('搜索内容')
-          .fontSize(14)
-          .margin({ left: 8 })
-      }
-
-      Row() {
-        Checkbox()
-          .select(this.searchOptions.searchInFileNames)
-          .onChange((value: boolean) => {
-            this.searchOptions.searchInFileNames = value;
-          })
-
-        Text('搜索文件名')
-          .fontSize(14)
-          .margin({ left: 8 })
-      }
-    }
-    .padding(16)
-    .backgroundColor(Color.White)
-    .border({ width: { bottom: 1 }, color: Color.Gray })
-  }
-
-  @Builder
-  buildSearchSuggestions() {
-    Column() {
-      Text('搜索建议')
-        .fontSize(12)
-        .fontColor(Color.Gray)
-        .fontWeight(FontWeight.Bold)
-        .margin({ bottom: 8 })
-
-      // 搜索建议列表
-      this.buildSuggestionsList()
-    }
-    .padding(16)
-  }
-
-  @Builder
-  buildSuggestionsList() {
-    Column() {
-      ForEach(this.searchService.getSearchSuggestions(), (suggestion: string) => {
-        Row() {
-          Text(suggestion)
-            .fontSize(14)
-            .layoutWeight(1)
-            .onClick(() => {
-              this.searchQuery = suggestion;
-              this.searchOptions.query = suggestion;
-              this.performSearch();
-            })
-        }
-        .padding(4)
-        .onClick(() => {
-          this.searchQuery = suggestion;
-          this.searchOptions.query = suggestion;
-          this.performSearch();
-        })
-      })
-    }
-  }
-
-  @Builder
-  buildSearchResults() {
-    Scroll() {
-      Column() {
-        if (this.isSearching) {
-          Text('搜索中...')
-            .fontSize(14)
-            .fontColor(Color.Gray)
-            .textAlign(TextAlign.Center)
-            .padding(20)
-        } else if (this.searchResults.length === 0) {
-          Text(this.searchQuery.trim() ? '未找到结果' : '请输入搜索关键词')
-            .fontSize(14)
-            .fontColor(Color.Gray)
-            .textAlign(TextAlign.Center)
-            .padding(20)
-        } else {
-          ForEach(this.searchResults, (result: SearchResult, index: number) => {
-            this.buildSearchResultItem(result)
-          })
-        }
-      }
-      .padding(16)
-    }
-    .layoutWeight(1)
-    // scrollable property not available in this ArkTS version
-  }
-
-  @Builder
-  buildSearchResultItem(result: SearchResult) {
-    Column() {
-      // 文件路径和行号
-      Row() {
-        Text(result.fileName)
-          .fontSize(12)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Color.Blue)
-
-        Text(`${result.lineNumber}:${result.columnNumber}`)
-          .fontSize(10)
-          .fontColor(Color.Gray)
-          .margin({ left: 8 })
-      }
-
-      // 匹配的行内容
-      Text(result.lineContent)
-        .fontSize(12)
-        .fontFamily('monospace')
-        .lineHeight(1.4)
-        .margin({ top: 4 })
-        .onClick(() => {
-          this.selectResult(result);
-        })
-    }
-    .padding(12)
-    .backgroundColor(Color.White)
-    .borderRadius(8)
-    .margin({ bottom: 8 })
-    .onClick(() => {
-      this.selectResult(result);
-    })
-  }
-
-  private debounceSearch() {
-    clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => {
-      this.performSearch();
-    }, 300);
-  }
-
-  private searchTimer: number = 0;
-
-  private async performSearch() {
-    if (!this.searchQuery.trim()) {
-      this.searchResults = [];
+  private performSearch() {
+    if (!this.searchText) {
       return;
     }
 
-    this.isSearching = true;
+    const options: SearchOptions = {
+      caseSensitive: this.caseSensitive,
+      wholeWord: this.wholeWord,
+      useRegex: this.useRegex
+    };
 
-    try {
-      const results = await this.searchService.search(this.searchOptions);
-      this.searchResults = results;
-    } catch (error) {
-      console.error('搜索失败:', error);
-      this.searchResults = [];
-    } finally {
-      this.isSearching = false;
+    this.searchResults = this.searchService.search(this.content, this.searchText, options);
+    this.currentResultIndex = 0;
+
+    if (this.onSearch) {
+      this.onSearch(this.searchResults);
     }
   }
 
-  private selectResult(result: SearchResult) {
-    if (this.onResultSelect) {
-      this.onResultSelect(result);
+  private performReplace() {
+    if (!this.searchText || !this.onReplace) {
+      return;
     }
-    this.closeDialog();
+
+    const options: SearchOptions = {
+      caseSensitive: this.caseSensitive,
+      wholeWord: this.wholeWord,
+      useRegex: this.useRegex
+    };
+
+    const result = this.searchService.replaceAll(this.content, this.searchText, this.replaceText, options);
+    this.onReplace(result.text);
+    
+    // 更新搜索结果
+    this.performSearch();
   }
 
-  private closeDialog() {
-    this.visible = false;
-    if (this.onClose) {
-      this.onClose();
+  build() {
+    Column() {
+      // 标题栏
+      Row() {
+        Text('搜索和替换')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.currentTheme.colors.text)
+          .layoutWeight(1)
+
+        Button({ type: ButtonType.Circle }) {
+          Text('×')
+            .fontSize(20)
+            .fontColor(this.currentTheme.colors.textSecondary)
+        }
+        .width(32)
+        .height(32)
+        .backgroundColor(Color.Transparent)
+        .onClick(() => {
+          if (this.onClose) {
+            this.onClose();
+          }
+          this.controller.close();
+        })
+      }
+      .width('100%')
+      .padding(16)
+      .backgroundColor(this.currentTheme.colors.surface)
+
+      Divider().color(this.currentTheme.colors.border)
+
+      // 搜索区域
+      Column({ space: 12 }) {
+        // 搜索输入
+        Row({ space: 8 }) {
+          TextInput({ placeholder: '搜索', text: this.searchText })
+            .layoutWeight(1)
+            .fontSize(14)
+            .backgroundColor(this.currentTheme.colors.surface)
+            .onChange((value: string) => {
+              this.searchText = value;
+            })
+            .onSubmit(() => {
+              this.performSearch();
+            })
+
+          Text(`${this.searchResults.length > 0 ? this.currentResultIndex + 1 : 0}/${this.searchResults.length}`)
+            .fontSize(12)
+            .fontColor(this.currentTheme.colors.textSecondary)
+            .width(60)
+            .textAlign(TextAlign.Center)
+        }
+
+        // 替换输入
+        if (this.showReplaceOptions) {
+          TextInput({ placeholder: '替换为', text: this.replaceText })
+            .fontSize(14)
+            .backgroundColor(this.currentTheme.colors.surface)
+            .onChange((value: string) => {
+              this.replaceText = value;
+            })
+        }
+
+        // 选项
+        Row({ space: 16 }) {
+          Row({ space: 4 }) {
+            Checkbox()
+              .select(this.caseSensitive)
+              .onChange((value: boolean) => {
+                this.caseSensitive = value;
+              })
+            Text('区分大小写')
+              .fontSize(12)
+              .fontColor(this.currentTheme.colors.text)
+          }
+
+          Row({ space: 4 }) {
+            Checkbox()
+              .select(this.wholeWord)
+              .onChange((value: boolean) => {
+                this.wholeWord = value;
+              })
+            Text('全词匹配')
+              .fontSize(12)
+              .fontColor(this.currentTheme.colors.text)
+          }
+
+          Row({ space: 4 }) {
+            Checkbox()
+              .select(this.useRegex)
+              .onChange((value: boolean) => {
+                this.useRegex = value;
+              })
+            Text('正则')
+              .fontSize(12)
+              .fontColor(this.currentTheme.colors.text)
+          }
+        }
+
+        // 按钮组
+        Row({ space: 12 }) {
+          Button('搜索')
+            .fontSize(14)
+            .backgroundColor(this.currentTheme.colors.primary)
+            .onClick(() => {
+              this.performSearch();
+            })
+
+          Button(this.showReplaceOptions ? '隐藏替换' : '显示替换')
+            .fontSize(14)
+            .backgroundColor(this.currentTheme.colors.surface)
+            .fontColor(this.currentTheme.colors.text)
+            .onClick(() => {
+              this.showReplaceOptions = !this.showReplaceOptions;
+            })
+
+          if (this.showReplaceOptions) {
+            Button('全部替换')
+              .fontSize(14)
+              .backgroundColor(this.currentTheme.colors.warning)
+              .onClick(() => {
+                this.performReplace();
+              })
+          }
+        }
+      }
+      .width('100%')
+      .padding(16)
     }
-  }
-
-  // 公共方法
-  public show() {
-    this.visible = true;
-  }
-
-  public hide() {
-    this.closeDialog();
-  }
-
-  public setQuery(query: string) {
-    this.searchQuery = query;
-    this.searchOptions.query = query;
+    .width('90%')
+    .constraintSize({ maxWidth: 500 })
+    .backgroundColor(this.currentTheme.colors.background)
+    .borderRadius(12)
+    .shadow({
+      radius: 20,
+      color: 'rgba(0, 0, 0, 0.2)',
+      offsetX: 0,
+      offsetY: 10
+    })
   }
 }
+

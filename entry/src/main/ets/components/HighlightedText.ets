@@ -1,34 +1,61 @@
-import { SyntaxHighlightService, HighlightToken } from '../services/SyntaxHighlightService';
-import { CodeCompletionService, CompletionSuggestion } from '../services/CodeCompletionService';
+/**
+ * 语法高亮文本组件
+ * 用于显示带有语法高亮的代码
+ */
+import { SyntaxHighlightService, Token } from '../services/SyntaxHighlightService';
+import { ThemeService, Theme } from '../services/ThemeService';
+import { CommonConstants } from '../common/CommonConstants';
 
 @Component
 export struct HighlightedText {
   @Prop code: string = '';
-  @Prop language: string = 'javascript';
-  @Prop fontSize: number = 15;
-  @Prop editable: boolean = false;
+  @Prop language: string = 'text';
+  @Prop fontSize: number = CommonConstants.DEFAULT_FONT_SIZE;
+  @Prop @Watch('onCodeChange') isEditable: boolean = true;
   
-  @State internalCode: string = '';
-  @State suggestions: CompletionSuggestion[] = [];
-  @State showSuggestions: boolean = false;
+  @State private internalCode: string = '';
+  @State private tokens: Token[] = [];
+  @State private currentTheme: Theme = ThemeService.getInstance().getCurrentTheme();
   
-  private highlightService: SyntaxHighlightService = new SyntaxHighlightService();
-  private completionService: CodeCompletionService = CodeCompletionService.getInstance();
-  @State tokens: HighlightToken[] = [];
-
-  onChange?: (value: string) => void;
+  private syntaxService: SyntaxHighlightService = SyntaxHighlightService.getInstance();
+  private themeService: ThemeService = ThemeService.getInstance();
+  private onContentChange?: (content: string) => void;
 
   aboutToAppear() {
     this.internalCode = this.code;
     this.updateHighlight();
+    
+    // 监听主题变化
+    this.themeService.onThemeChange((theme: Theme) => {
+      this.currentTheme = theme;
+    });
+  }
+
+  onCodeChange() {
+    this.internalCode = this.code;
+    this.updateHighlight();
+  }
+
+  private updateHighlight() {
+    if (this.language !== 'text') {
+      this.tokens = this.syntaxService.tokenize(this.internalCode, this.language);
+    }
+  }
+
+  private handleTextChange(value: string) {
+    this.internalCode = value;
+    this.updateHighlight();
+    if (this.onContentChange) {
+      this.onContentChange(value);
+    }
   }
 
   build() {
-    Stack() {
-      if (this.editable) {
-        this.buildEditableEditor()
+    Column() {
+      if (this.isEditable) {
+        this.buildEditableEditor();
       } else {
-        this.buildReadOnlyView()
+        this.buildReadOnlyEditor();
       }
     }
     .width('100%')
@@ -38,126 +65,134 @@ export struct HighlightedText {
   @Builder
   buildEditableEditor(): void {
     Column() {
-      // 编辑器工具栏
+      // 工具栏
       Row() {
-        Text(this.getLanguageLabel())
-          .fontSize(12)
-          .fontColor($r('app.color.text_tertiary'))
-          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-          .backgroundColor($r('app.color.background_tertiary'))
-          .borderRadius(4)
-        
+        Row() {
+          Text('▣')
+            .fontSize(12)
+            .fontColor(this.currentTheme.colors.primary)
+            .margin({ right: 6 })
+          
+          Text(this.getLanguageLabel())
+            .fontSize(12)
+            .fontColor(this.currentTheme.colors.textSecondary)
+            .fontWeight(FontWeight.Medium)
+        }
+        .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+        .backgroundColor(this.currentTheme.colors.surface)
+        .borderRadius(6)
+
         Blank()
-        
-        Text(`${this.getLineCount()} 行 · ${this.internalCode.length} 字符`)
-          .fontSize(12)
-          .fontColor($r('app.color.text_tertiary'))
+
+        Row({ space: 8 }) {
+          Text(`${this.getLineCount()} 行`)
+            .fontSize(11)
+            .fontColor(this.currentTheme.colors.textSecondary)
+          
+          Text(`${this.internalCode.length} 字符`)
+            .fontSize(11)
+            .fontColor(this.currentTheme.colors.textSecondary)
+        }
       }
       .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 8 })
+      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+      .backgroundColor(this.currentTheme.editor.background)
 
-      // 编辑器区域
+      Divider()
+        .color(this.currentTheme.colors.border)
+        .strokeWidth(0.5)
+
+      // 可编辑文本区域
       TextArea({
         placeholder: '// 开始编写代码...\n// 支持语法高亮',
         text: this.internalCode
       })
-      .width('100%')
-      .layoutWeight(1)
-      .fontSize(this.fontSize)
-      .fontFamily('SF Mono, Monaco, Menlo, Consolas, "Courier New", monospace')
-      .backgroundColor($r('app.color.editor_background'))
-      .borderRadius(0)
-      .border({ width: 0 })
-      .padding({ left: 16, right: 16, top: 8, bottom: 16 })
-      .placeholderColor($r('app.color.text_tertiary'))
-      .onChange((value: string): void => {
-        this.internalCode = value;
-        this.updateHighlight();
-        if (this.onChange) {
-          this.onChange(value);
-        }
-      })
+        .width('100%')
+        .layoutWeight(1)
+        .fontSize(this.fontSize)
+        .lineHeight(this.fontSize * 1.6)
+        .fontFamily('SF Mono, Monaco, Menlo, Consolas, "Courier New", monospace')
+        .fontColor(this.currentTheme.editor.text)
+        .backgroundColor(this.currentTheme.editor.background)
+        .borderRadius(0)
+        .border({ width: 0 })
+        .padding({ left: 16, right: 16, top: 8, bottom: 16 })
+        .placeholderColor(this.currentTheme.colors.textSecondary)
+        .caretColor(this.currentTheme.editor.cursor)
+        .onChange((value: string) => {
+          this.handleTextChange(value);
+        })
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(this.currentTheme.editor.background)
   }
 
   @Builder
-  buildReadOnlyView(): void {
+  buildReadOnlyEditor(): void {
     Scroll() {
       Column() {
-        ForEach(this.tokens, (token: HighlightToken) => {
-          Text(token.text)
+        if (this.tokens.length > 0) {
+          this.buildHighlightedCode();
+        } else {
+          Text(this.internalCode)
             .fontSize(this.fontSize)
-            .fontFamily('monospace')
-            .fontColor(this.getTokenColor(token.type))
-        })
+            .fontFamily('SF Mono, Monaco, Consolas, monospace')
+            .fontColor(this.currentTheme.editor.text)
+            .lineHeight(this.fontSize * 1.6)
+        }
       }
-      .alignItems(HorizontalAlign.Start)
+      .width('100%')
       .padding(16)
     }
     .width('100%')
     .height('100%')
-    .backgroundColor($r('app.color.editor_background'))
+    .backgroundColor(this.currentTheme.editor.background)
+    .scrollBar(BarState.Auto)
   }
 
-  private updateHighlight() {
-    if (this.internalCode) {
-      this.tokens = this.highlightService.analyzeCode(this.internalCode, this.language);
-    } else {
-      this.tokens = [];
+  @Builder
+  buildHighlightedCode(): void {
+    Text() {
+      ForEach(this.tokens, (token: Token, index: number) => {
+        Span(token.value)
+          .fontSize(this.fontSize)
+          .fontColor(this.getTokenColor(token.type))
+          .fontFamily('SF Mono, Monaco, Consolas, monospace')
+      }, (token: Token, index: number) => `${index}_${token.start}`)
     }
+    .lineHeight(this.fontSize * 1.6)
   }
 
   private getTokenColor(type: string): string {
     const colorMap: Record<string, string> = {
-      'keyword': '#C678DD',      // 紫色 - 关键字
-      'string': '#98C379',       // 绿色 - 字符串  
-      'comment': '#7F848E',      // 灰色 - 注释
-      'number': '#D19A66',       // 橙色 - 数字
-      'function': '#61AFEF',     // 蓝色 - 函数
-      'variable': '#E06C75',     // 红色 - 变量
-      'operator': '#ABB2BF',     // 浅灰 - 操作符
-      'bracket': '#ABB2BF',      // 浅灰 - 括号
-      'text': '#ABB2BF'          // 浅灰 - 普通文本
+      'keyword': this.currentTheme.syntax.keyword,
+      'string': this.currentTheme.syntax.string,
+      'comment': this.currentTheme.syntax.comment,
+      'number': this.currentTheme.syntax.number,
+      'function': this.currentTheme.syntax.function,
+      'variable': this.currentTheme.syntax.variable,
+      'operator': this.currentTheme.syntax.operator,
+      'bracket': this.currentTheme.editor.text,
+      'type': this.currentTheme.syntax.type,
+      'text': this.currentTheme.editor.text
     };
-    return colorMap[type] || '#ABB2BF';
+    return colorMap[type] || this.currentTheme.editor.text;
   }
 
   private getLanguageLabel(): string {
-    const labels: Record<string, string> = {
-      'javascript': 'JavaScript',
-      'typescript': 'TypeScript',
-      'python': 'Python',
-      'java': 'Java',
-      'html': 'HTML',
-      'css': 'CSS',
-      'json': 'JSON',
-      'markdown': 'Markdown'
-    };
-    return labels[this.language] || this.language.toUpperCase();
+    return this.syntaxService.getLanguageDisplayName(this.language);
   }
 
   private getLineCount(): number {
-    return this.internalCode ? this.internalCode.split('\n').length : 1;
+    return this.internalCode.split('\n').length;
   }
 
-  // 公共方法
-  public refreshHighlight() {
-    this.updateHighlight();
-  }
-
-  public setCode(code: string) {
-    this.internalCode = code;
-    this.updateHighlight();
-  }
-
-  public setLanguage(language: string) {
-    this.language = language;
-    this.updateHighlight();
-  }
-
-  public getCode(): string {
-    return this.internalCode;
+  /**
+   * 设置内容变化回调
+   */
+  public setOnContentChange(callback: (content: string) => void): void {
+    this.onContentChange = callback;
   }
 }
+
