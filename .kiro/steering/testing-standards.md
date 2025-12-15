@@ -1,0 +1,190 @@
+---
+inclusion: fileMatch
+fileMatchPattern: ['entry/src/test/*.ets', 'entry/src/ohosTest/ets/test/*.ets']
+---
+
+# HarmonyOS 测试开发规范
+
+## 测试架构概览
+
+### 测试目录结构
+- [entry/src/test/](mdc:entry/src/test/) - 本地单元测试
+- [entry/src/ohosTest/ets/test/](mdc:entry/src/ohosTest/ets/test/) - 设备测试
+
+### 现有测试文件
+- [LocalUnit.test.ets](mdc:entry/src/test/LocalUnit.test.ets) - 本地单元测试示例
+- [List.test.ets](mdc:entry/src/test/List.test.ets) - 列表功能测试
+- [Ability.test.ets](mdc:entry/src/ohosTest/ets/test/Ability.test.ets) - Ability 测试
+- [List.test.ets](mdc:entry/src/ohosTest/ets/test/List.test.ets) - 设备端列表测试
+
+## 测试框架
+
+### 依赖库
+项目使用 HarmonyOS 官方测试框架：
+- `@ohos/hypium` - 测试执行框架
+- `@ohos/hamock` - Mock 测试库
+
+### 测试类型
+
+#### 单元测试 (Unit Test)
+```arkts
+import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from '@ohos/hypium'
+
+export default function LocalUnitTest() {
+  describe('ComponentName', function () {
+    beforeAll(function () {
+      // 测试套件开始前的初始化
+    })
+    
+    beforeEach(function () {
+      // 每个测试用例执行前的准备
+    })
+    
+    afterEach(function () {
+      // 每个测试用例执行后的清理
+    })
+    
+    afterAll(function () {
+      // 测试套件结束后的清理
+    })
+    
+    it('should perform expected behavior', function () {
+      // 测试逻辑
+      let result = targetFunction()
+      expect(result).assertEqual(expectedValue)
+    })
+  })
+}
+```
+
+#### UI 测试 (UI Test)
+```arkts
+import { Driver, ON } from '@ohos.UiTest'
+
+export default function UiTest() {
+  describe('UI Test Suite', function () {
+    it('should interact with UI components', async function () {
+      let driver = Driver.create()
+      
+      // 查找并点击按钮
+      await driver.findComponent(ON.text('按钮文本'))
+        .click()
+      
+      // 验证结果
+      let result = await driver.findComponent(ON.text('期望文本'))
+      expect(result).assertIsNotNull()
+    })
+  })
+}
+```
+
+## 测试最佳实践
+
+### 测试命名规范
+- 测试文件：`FeatureName.test.ets`
+- 测试套件：使用功能模块名称
+- 测试用例：使用 `should + 期望行为` 格式
+
+### 测试覆盖范围
+
+#### 服务层测试
+针对 [services/](mdc:entry/src/main/ets/services/) 目录下的服务：
+```arkts
+describe('FileService', function () {
+  it('should read file content correctly', async function () {
+    let fileService = FileService.getInstance()
+    let content = await fileService.readFile('test.txt')
+    expect(content).assertIsNotNull()
+  })
+  
+  it('should handle file not found error', async function () {
+    let fileService = FileService.getInstance()
+    try {
+      await fileService.readFile('nonexistent.txt')
+      expect().assertFail('Should throw error')
+    } catch (error) {
+      expect(error.message).assertContain('File not found')
+    }
+  })
+})
+```
+
+#### 组件测试
+针对 [components/](mdc:entry/src/main/ets/components/) 目录下的组件：
+```arkts
+describe('HighlightedText Component', function () {
+  it('should render text with highlights', function () {
+    // 组件渲染测试
+    // 使用 Mock 数据验证组件行为
+  })
+})
+```
+
+#### 模型测试
+针对 [models/](mdc:entry/src/main/ets/models/) 目录下的数据模型：
+```arkts
+describe('FileModel', function () {
+  it('should validate file data correctly', function () {
+    let fileModel = new FileModel('test.txt', 'content')
+    expect(fileModel.validate()).assertTrue()
+  })
+  
+  it('should serialize to JSON correctly', function () {
+    let fileModel = new FileModel('test.txt', 'content')
+    let json = fileModel.toJSON()
+    expect(json.name).assertEqual('test.txt')
+  })
+})
+```
+
+## Mock 和测试替身
+
+### 服务 Mock
+```arkts
+import { when } from '@ohos/hamock'
+
+// Mock 外部依赖
+let mockFileService = {
+  readFile: when().mockResolvedValue('mocked content'),
+  writeFile: when().mockResolvedValue(true)
+}
+```
+
+### 异步测试
+```arkts
+it('should handle async operations', async function () {
+  let promise = asyncFunction()
+  await expect(promise).resolves.assertEqual(expectedValue)
+})
+```
+
+## 测试配置
+
+### 测试运行配置
+参考项目的测试配置文件进行环境设置
+
+### 持续集成
+- 确保所有测试在提交前通过
+- 维持测试覆盖率在合理水平（建议 >80%）
+- 定期更新和维护测试用例
+
+## 调试和诊断
+
+### 测试调试
+```arkts
+it('should debug test case', function () {
+  console.log('Debug information:', debugData)
+  // 测试逻辑
+})
+```
+
+### 性能测试
+```arkts
+it('should perform within acceptable time', async function () {
+  let startTime = Date.now()
+  await performanceTarget()
+  let endTime = Date.now()
+  
+  expect(endTime - startTime).assertLess(1000) // 1秒内完成
+})
+```

@@ -22,6 +22,9 @@ class FeatureCardData {
 struct Index {
   @State private currentStep: number = 0;
   @State private currentBreakpoint: Breakpoint = 'sm';
+  // 获取避让区高度
+  @StorageProp('topRectHeight') topRectHeight: number = 0;
+  @StorageProp('bottomRectHeight') bottomRectHeight: number = 0;
   
   private breakpointService: BreakpointService = BreakpointService.getInstance();
   
@@ -95,6 +98,8 @@ struct Index {
     }
     .width('100%')
     .height('100%')
+    // 将背景延伸到状态栏和导航栏区域，实现沉浸式效果
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
   @Builder
@@ -114,8 +119,10 @@ struct Index {
       .padding({ 
         left: ResponsiveUtils.getMargin(), 
         right: ResponsiveUtils.getMargin(), 
-        top: this.breakpointService.isLargeScreen() ? 100 : 80, 
-        bottom: 60 
+        // 顶部padding考虑状态栏高度（px转vp近似值）
+        top: this.topRectHeight / 3 + (this.breakpointService.isLargeScreen() ? 40 : 30), 
+        // 底部padding考虑导航栏高度
+        bottom: this.bottomRectHeight / 3 + 30 
       })
       .constraintSize({ 
         maxWidth: this.breakpointService.isDesktop() ? 1400 : 1200 
@@ -244,14 +251,7 @@ struct Index {
       curve: Curve.Friction,
       delay: 600 + index * 100
     })
-    .stateStyles({
-      normal: {
-        .scale({ x: 1, y: 1 })
-      },
-      pressed: {
-        .scale({ x: 0.95, y: 0.95 })
-      }
-    })
+
   }
 
   @Builder
@@ -286,15 +286,7 @@ struct Index {
         curve: Curve.EaseOut,
         delay: 1000
       })
-      .stateStyles({
-        normal: {
-          .scale({ x: 1, y: 1 })
-        },
-        pressed: {
-          .scale({ x: 0.96, y: 0.96 })
-        }
-      })
-      .onClick(() => {
+.onClick(() => {
         router.pushUrl({ url: 'pages/CodeEditor' }).catch((err: Error) => {
           console.error('跳转失败:', err.message);
         });
@@ -327,14 +319,6 @@ struct Index {
         duration: 600,
         curve: Curve.EaseOut,
         delay: 1100
-      })
-      .stateStyles({
-        normal: {
-          .scale({ x: 1, y: 1 })
-        },
-        pressed: {
-          .scale({ x: 0.96, y: 0.96 })
-        }
       })
     }
     .width('100%')

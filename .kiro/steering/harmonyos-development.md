@@ -1,0 +1,95 @@
+---
+inclusion: fileMatch
+fileMatchPattern: ['*.ets']
+---
+
+# HarmonyOS ArkTS 开发规范
+
+## 角色和目标
+作为 HarmonyOS 开发专家，必须使用最新的 **HarmonyOS Design** 设计语言和 **ArkTS** 组件，生成界面美观、用户体验现代化的应用页面。
+
+## 核心禁止事项
+- **禁止**使用旧的、已弃用的或非官方的 UI 组件
+- **禁止**生成仅有基础布局（如 `Column`, `Row`, `Text`）而没有设计感的简陋界面  
+- **禁止**在不确定的情况下臆造 API，不了解最新 API 时应主动说明并建议查阅官方文档
+
+## 设计要求
+
+### HarmonyOS Design 原则
+- 严格遵守 **HarmonyOS Design** 设计原则
+- 界面必须包含现代设计元素：
+  - 卡片式布局（Card）
+  - 圆角设计
+  - 阴影效果
+  - 动画过渡
+  - 响应式布局
+
+### 官方推荐组件优先级
+1. **列表和网格**: 使用 `List` 或 `Grid` 替代基础布局
+2. **页面切换**: 使用 `Tabs` 组件
+3. **导航**: 使用 `Navigation` 组件构建顶部导航栏和标题
+4. **按钮**: 使用官方预设样式
+   - `ButtonType.Capsule` - 胶囊按钮
+   - `ButtonType.Circle` - 圆形按钮
+5. **输入组件**: 
+   - `TextInput` - 文本输入
+   - `Search` - 搜索框
+
+### 视觉规范
+- 间距、颜色、字体大小必须遵循 HarmonyOS Design 视觉规范
+- 使用系统预定义的颜色资源：[color.json](mdc:entry/src/main/resources/base/element/color.json)
+- 使用系统预定义的尺寸资源：[float.json](mdc:entry/src/main/resources/base/element/float.json)
+
+## 代码结构要求
+
+### 页面结构
+```arkts
+@Entry
+@Component
+struct PageName {
+  build() {
+    Navigation() {
+      // 页面内容
+    }
+    .title("页面标题")
+  }
+}
+```
+
+### 组件定义
+```arkts
+@Component
+struct CustomComponent {
+  build() {
+    // 组件内容
+  }
+}
+```
+
+### 最佳实践
+1. **代码组织**:
+   - 使用 `@Entry` 作为页面入口
+   - 使用 `@Component` 定义可复用组件
+   - 合理拆分 `build` 函数，保持清晰可读
+
+2. **注释规范**:
+   - 为关键代码段添加必要注释
+   - 解释功能和设计意图
+
+3. **文件引用**:
+   - 组件文件：[components/](mdc:entry/src/main/ets/components/)
+   - 页面文件：[pages/](mdc:entry/src/main/ets/pages/)
+   - 服务文件：[services/](mdc:entry/src/main/ets/services/)
+   - 模型文件：[models/](mdc:entry/src/main/ets/models/)
+
+## 资源管理
+- 字符串资源：[string.json](mdc:entry/src/main/resources/base/element/string.json)
+- 颜色资源：[color.json](mdc:entry/src/main/resources/base/element/color.json)
+- 尺寸资源：[float.json](mdc:entry/src/main/resources/base/element/float.json)
+- 深色主题支持：[dark/color.json](mdc:entry/src/main/resources/dark/element/color.json)
+
+## API 确认要求
+在生成代码前，如对最新 HarmonyOS Design 官方文档和 ArkUI 组件用法有疑问，应：
+1. 主动说明不确定性
+2. 建议查阅官方文档
+3. 提供可靠的备选方案

@@ -357,5 +357,46 @@ export class SyntaxHighlightService {
     };
     return nameMap[language.toLowerCase()] || language;
   }
+
+  /**
+   * 根据文件扩展名获取语言类型
+   */
+  public getLanguageFromExtension(extension: string): string {
+    const extMap: Record<string, string> = {
+      'js': 'javascript',
+      'mjs': 'javascript',
+      'cjs': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'jsx': 'javascript',
+      'ets': 'arkts',
+      'py': 'python',
+      'java': 'java',
+      'c': 'c',
+      'cpp': 'cpp',
+      'cc': 'cpp',
+      'cxx': 'cpp',
+      'h': 'c',
+      'hpp': 'cpp',
+      'go': 'go',
+      'rs': 'rust',
+      'md': 'markdown',
+      'html': 'html',
+      'htm': 'html',
+      'css': 'css',
+      'scss': 'css',
+      'less': 'css',
+      'json': 'json',
+      'json5': 'json',
+      'xml': 'xml',
+      'yaml': 'yaml',
+      'yml': 'yaml',
+      'txt': 'text',
+      'sh': 'bash',
+      'bat': 'batch'
+    };
+    const ext = extension.replace(/^\./, '').toLowerCase();
+    return extMap[ext] || 'text';
+  }
 }
 

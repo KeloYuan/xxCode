@@ -1,0 +1,185 @@
+---
+inclusion: fileMatch
+fileMatchPattern: ['entry/src/main/ets/pages/*.ets']
+---
+
+# HarmonyOS 页面开发规范
+
+## 页面架构设计
+
+### 现有页面参考
+- [Index.ets](mdc:entry/src/main/ets/pages/Index.ets) - 主页面，应用入口
+- [CodeEditor.ets](mdc:entry/src/main/ets/pages/CodeEditor.ets) - 代码编辑器页面
+
+### 页面结构模板
+```arkts
+@Entry
+@Component
+struct PageName {
+  // 页面状态管理
+  @State pageTitle: string = '页面标题'
+  @State isLoading: boolean = false
+  
+  // 生命周期方法
+  aboutToAppear() {
+    // 页面即将显示时的初始化逻辑
+  }
+  
+  aboutToDisappear() {
+    // 页面即将隐藏时的清理逻辑
+  }
+  
+  // 页面构建方法
+  build() {
+    Navigation() {
+      Column() {
+        // 页面主体内容
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor($r('app.color.page_background'))
+    }
+    .title(this.pageTitle)
+    .titleMode(NavigationTitleMode.Mini)
+  }
+}
+```
+
+## 导航和路由
+
+### 页面跳转
+```arkts
+// 页面跳转到其他页面
+router.pushUrl({
+  url: 'pages/TargetPage',
+  params: {
+    key: 'value'
+  }
+})
+
+// 返回上一页
+router.back()
+
+// 替换当前页面
+router.replaceUrl({
+  url: 'pages/NewPage'
+})
+```
+
+### 页面参数接收
+```arkts
+@Entry
+@Component
+struct TargetPage {
+  @State receivedParams: object = {}
+  
+  aboutToAppear() {
+    this.receivedParams = router.getParams()
+  }
+}
+```
+
+## 页面配置
+
+### 页面注册
+页面需要在 [main_pages.json](mdc:entry/src/main/resources/base/profile/main_pages.json) 中注册：
+```json
+{
+  "src": [
+    "pages/Index",
+    "pages/CodeEditor"
+  ]
+}
+```
+
+### 页面能力配置
+在 [module.json5](mdc:entry/src/main/module.json5) 中配置页面启动能力
+
+## UI 设计规范
+
+### 页面布局
+- 使用 `Navigation` 作为页面根容器，提供统一的导航体验
+- 主内容区域使用 `Column` 或 `Row` 进行基础布局
+- 复杂列表使用 `List` 组件而非嵌套的基础容器
+
+### 响应式设计
+```arkts
+@Styles
+function responsiveWidth() {
+  .width('100%')
+  .maxWidth(750) // 大屏设备最大宽度限制
+}
+
+// 在页面中使用
+Column() {
+  // 内容
+}
+.responsiveWidth()
+```
+
+### 主题适配
+- 颜色使用资源引用：`$r('app.color.primary')`
+- 支持深色模式，参考 [dark/color.json](mdc:entry/src/main/resources/dark/element/color.json)
+- 字体大小使用系统预设：`$r('app.float.font_size_body')`
+
+## 性能优化
+
+### 懒加载
+```arkts
+@Component
+struct LazyLoadContent {
+  @State isVisible: boolean = false
+  
+  build() {
+    if (this.isVisible) {
+      // 复杂内容组件
+      ComplexComponent()
+    } else {
+      // 占位符
+      Flex() {
+        Text('加载中...')
+      }
+      .onAppear(() => {
+        this.isVisible = true
+      })
+    }
+  }
+}
+```
+
+### 状态管理优化
+- 避免不必要的状态更新
+- 使用 `@Watch` 监听特定状态变化
+- 合理拆分组件，减少重新渲染范围
+
+## 错误处理
+
+### 页面错误边界
+```arkts
+@Component
+struct ErrorBoundary {
+  @State hasError: boolean = false
+  @State errorMessage: string = ''
+  
+  build() {
+    if (this.hasError) {
+      Column() {
+        Text('页面出现错误')
+        Text(this.errorMessage)
+        Button('重试')
+          .onClick(() => {
+            this.hasError = false
+            // 重新加载页面逻辑
+          })
+      }
+    } else {
+      // 正常页面内容
+    }
+  }
+}
+```
+
+### 网络错误处理
+- 提供网络异常的用户友好提示
+- 实现重试机制
+- 显示加载状态和错误状态

@@ -1,0 +1,113 @@
+---
+inclusion: fileMatch
+fileMatchPattern: ['entry/src/main/ets/services/*.ets', 'entry/src/main/ets/models/*.ets']
+---
+
+# 服务层和数据模型规范
+
+## 服务层架构
+
+### 现有服务模块
+项目包含以下核心服务，新服务应当参考其设计模式：
+
+- [FileService.ets](mdc:entry/src/main/ets/services/FileService.ets) - 文件操作抽象接口
+- [RealFileService.ets](mdc:entry/src/main/ets/services/RealFileService.ets) - 实际文件操作实现
+- [MarkdownService.ets](mdc:entry/src/main/ets/services/MarkdownService.ets) - Markdown 处理服务
+- [SearchService.ets](mdc:entry/src/main/ets/services/SearchService.ets) - 搜索功能服务
+- [SyntaxHighlightService.ets](mdc:entry/src/main/ets/services/SyntaxHighlightService.ets) - 语法高亮服务
+- [ThemeService.ets](mdc:entry/src/main/ets/services/ThemeService.ets) - 主题管理服务
+
+### 服务设计模式
+
+#### 单例模式
+```arkts
+export class ServiceName {
+  private static instance: ServiceName | null = null;
+  
+  private constructor() {
+    // 初始化逻辑
+  }
+  
+  public static getInstance(): ServiceName {
+    if (!ServiceName.instance) {
+      ServiceName.instance = new ServiceName();
+    }
+    return ServiceName.instance;
+  }
+  
+  // 服务方法
+  public async methodName(): Promise<ResultType> {
+    // 实现逻辑
+  }
+}
+```
+
+#### 接口抽象
+- 为服务定义清晰的接口，便于测试和替换实现
+- 参考 `FileService` 的抽象设计模式
+
+### 异步操作规范
+- 所有 I/O 操作必须使用 `async/await`
+- 合理处理异常情况，提供错误处理机制
+- 使用 `Promise` 进行异步数据传递
+
+## 数据模型设计
+
+### 现有模型参考
+- [FileModel.ets](mdc:entry/src/main/ets/models/FileModel.ets) - 文件数据模型
+
+### 模型设计原则
+
+#### 类型安全
+```arkts
+export interface ModelInterface {
+  id: string;
+  name: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export class ModelName implements ModelInterface {
+  constructor(
+    public id: string,
+    public name: string,
+    public createdAt: Date,
+    public updatedAt?: Date
+  ) {}
+  
+  // 业务方法
+  public validate(): boolean {
+    return this.id.length > 0 && this.name.length > 0;
+  }
+}
+```
+
+#### 数据转换
+- 提供 `toJSON()` 和 `fromJSON()` 方法进行序列化
+- 实现数据验证逻辑，确保数据完整性
+
+### 状态管理
+- 使用 `@Observed` 装饰需要监听的模型类
+- 在组件中使用 `@ObjectLink` 绑定模型数据
+- 避免在模型中直接操作 UI 状态
+
+## 错误处理规范
+
+### 统一错误类型
+```arkts
+export class ServiceError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public details?: any
+  ) {
+    super(message);
+    this.name = 'ServiceError';
+  }
+}
+```
+
+### 日志记录
+- 在关键操作点添加日志记录
+- 使用 HarmonyOS 提供的日志 API
+- 区分开发环境和生产环境的日志级别
