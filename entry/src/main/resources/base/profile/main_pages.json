@@ -1,7 +1,9 @@
 {
   "src": [
+    "pages/Agreement",
     "pages/Index",
     "pages/CodeEditor",
-    "pages/TabletCodeEditor"
+    "pages/TabletCodeEditor",
+    "pages/Settings"
   ]
 }

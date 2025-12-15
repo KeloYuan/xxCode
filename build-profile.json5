@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\niki\\.ohos\\config\\default_xxCode_KZDE4zyFOv2Dbv3zESBi1dXP8mESGGjPWSqIBTxCSPk=.cer",
+          "certpath": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001A82FE0BDDAEEC45E89AFE1FC05112C26700CA635D8BA40D780AAA72B5EED2C1403F44272D8DA3",
-          "profile": "C:\\Users\\niki\\.ohos\\config\\default_xxCode_KZDE4zyFOv2Dbv3zESBi1dXP8mESGGjPWSqIBTxCSPk=.p7b",
+          "keyPassword": "0000001A690AA76B434036FE87D04C43308951BF2DEDFC3C71C630146F8B3034DF8A44FEB213D2E9EEE7",
+          "profile": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\niki\\.ohos\\config\\default_xxCode_KZDE4zyFOv2Dbv3zESBi1dXP8mESGGjPWSqIBTxCSPk=.p12",
-          "storePassword": "0000001A12E5E59476AB45ECEC4C5F755CABF141633CDAD94E410A2C25123FC03966DD62FE6BD0C11595"
+          "storeFile": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.p12",
+          "storePassword": "0000001A558CEA33058FB035EE308F5EEF635DCE1B22A91115304574F103D31A75B547389D5EB5E4BAE4"
         }
       }
     ],

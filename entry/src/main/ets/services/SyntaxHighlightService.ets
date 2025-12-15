@@ -63,9 +63,13 @@ export class SyntaxHighlightService {
     
     let i = 0;
     while (i < code.length) {
-      // 跳过空白字符
+      // 保留空白字符
       if (/\s/.test(code[i])) {
-        i++;
+        const start = i;
+        while (i < code.length && /\s/.test(code[i])) {
+          i++;
+        }
+        tokens.push({ type: 'text', value: code.substring(start, i), start, end: i });
         continue;
       }
 
@@ -233,8 +237,13 @@ export class SyntaxHighlightService {
     let i = 0;
 
     while (i < code.length) {
+      // 保留空白字符
       if (/\s/.test(code[i])) {
-        i++;
+        const start = i;
+        while (i < code.length && /\s/.test(code[i])) {
+          i++;
+        }
+        tokens.push({ type: 'text', value: code.substring(start, i), start, end: i });
         continue;
       }
 
@@ -284,17 +293,38 @@ export class SyntaxHighlightService {
   }
 
   /**
-   * HTML 语法分析
+   * HTML 语法分析 - 简化版，保留所有空格
    */
   private tokenizeHTML(code: string): Token[] {
     const tokens: Token[] = [];
     let i = 0;
 
     while (i < code.length) {
-      // 标签
-      if (code[i] === '<') {
+      // 保留空白字符
+      if (/\s/.test(code[i])) {
         const start = i;
-        i++;
+        while (i < code.length && /\s/.test(code[i])) {
+          i++;
+        }
+        tokens.push({ type: 'text', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // HTML 注释 <!-- -->
+      if (code.substr(i, 4) === '<!--') {
+        const start = i;
+        i += 4;
+        while (i < code.length - 2 && code.substr(i, 3) !== '-->') {
+          i++;
+        }
+        i += 3;
+        tokens.push({ type: 'comment', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // DOCTYPE
+      if (code.substr(i, 9).toLowerCase() === '<!doctype') {
+        const start = i;
         while (i < code.length && code[i] !== '>') {
           i++;
         }
@@ -303,14 +333,73 @@ export class SyntaxHighlightService {
         continue;
       }
 
-      // 文本内容
-      const start = i;
-      while (i < code.length && code[i] !== '<') {
+      // 标签 < 开始
+      if (code[i] === '<') {
+        tokens.push({ type: 'bracket', value: '<', start: i, end: i + 1 });
         i++;
+        
+        // 闭合标签 /
+        if (code[i] === '/') {
+          tokens.push({ type: 'bracket', value: '/', start: i, end: i + 1 });
+          i++;
+        }
+
+        // 标签名
+        const tagStart = i;
+        while (i < code.length && /[a-zA-Z0-9-]/.test(code[i])) {
+          i++;
+        }
+        if (i > tagStart) {
+          tokens.push({ type: 'keyword', value: code.substring(tagStart, i), start: tagStart, end: i });
+        }
+        continue;
       }
-      if (i > start) {
-        tokens.push({ type: 'text', value: code.substring(start, i), start, end: i });
+
+      // 标签结束 > 或 />
+      if (code[i] === '>') {
+        tokens.push({ type: 'bracket', value: '>', start: i, end: i + 1 });
+        i++;
+        continue;
       }
+      if (code[i] === '/' && code[i + 1] === '>') {
+        tokens.push({ type: 'bracket', value: '/>', start: i, end: i + 2 });
+        i += 2;
+        continue;
+      }
+
+      // 等号
+      if (code[i] === '=') {
+        tokens.push({ type: 'operator', value: '=', start: i, end: i + 1 });
+        i++;
+        continue;
+      }
+
+      // 字符串（属性值）
+      if (code[i] === '"' || code[i] === "'") {
+        const quote = code[i];
+        const start = i;
+        i++;
+        while (i < code.length && code[i] !== quote) {
+          i++;
+        }
+        i++;
+        tokens.push({ type: 'string', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 属性名或其他标识符
+      if (/[a-zA-Z_\-]/.test(code[i])) {
+        const start = i;
+        while (i < code.length && /[a-zA-Z0-9_:\-]/.test(code[i])) {
+          i++;
+        }
+        tokens.push({ type: 'variable', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+
+      // 其他字符
+      tokens.push({ type: 'text', value: code[i], start: i, end: i + 1 });
+      i++;
     }
 
     return tokens;

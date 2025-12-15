@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "代码编辑器模块"
+      "value": "元代码编辑器模块"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "HarmonyOS代码编辑器"
+      "value": "元代码 - HarmonyOS代码编辑器"
     },
     {
       "name": "EntryAbility_label",
-      "value": "代码编辑器"
+      "value": "元代码"
     },
     {
       "name": "permission_reason",

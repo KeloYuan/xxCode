@@ -1,8 +1,11 @@
 /**
- * xxCode 启动欢迎页
+ * 元代码 启动欢迎页
  * 符合 HarmonyOS Design 规范的现代化欢迎界面
+ * 只在首次启动时显示
  */
 import { router } from '@kit.ArkUI';
+import { preferences } from '@kit.ArkData';
+import { common } from '@kit.AbilityKit';
 import { BreakpointService, Breakpoint, ResponsiveUtils } from '../services/BreakpointService';
 
 class FeatureCardData {
@@ -22,11 +25,13 @@ class FeatureCardData {
 struct Index {
   @State private currentStep: number = 0;
   @State private currentBreakpoint: Breakpoint = 'sm';
+  @State private isLoading: boolean = true;
   // 获取避让区高度
   @StorageProp('topRectHeight') topRectHeight: number = 0;
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0;
   
   private breakpointService: BreakpointService = BreakpointService.getInstance();
+  private context: common.UIAbilityContext | null = null;
   
   // 特性卡片数据
   private features: Array<FeatureCardData> = [
@@ -36,7 +41,25 @@ struct Index {
     new FeatureCardData('🌙', '多主题', '深色/浅色/Monokai/Dracula')
   ];
 
-  aboutToAppear() {
+  async aboutToAppear() {
+    this.context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    
+    // 检查是否已看过欢迎页
+    try {
+      const dataPreferences = await preferences.getPreferences(this.context, 'user_settings');
+      const welcomed = await dataPreferences.get('welcome_shown', false);
+      
+      if (welcomed) {
+        // 已看过欢迎页，直接跳转到编辑器
+        router.replaceUrl({ url: 'pages/CodeEditor' });
+        return;
+      }
+    } catch (err) {
+      console.error('读取首选项失败:', JSON.stringify(err));
+    }
+    
+    this.isLoading = false;
+    
     // 注册断点系统
     this.breakpointService.register();
     this.currentBreakpoint = this.breakpointService.getCurrentBreakpoint();
@@ -53,6 +76,18 @@ struct Index {
 
   aboutToDisappear() {
     this.breakpointService.unregister();
+  }
+  
+  private async markWelcomeShown() {
+    try {
+      if (this.context) {
+        const dataPreferences = await preferences.getPreferences(this.context, 'user_settings');
+        await dataPreferences.put('welcome_shown', true);
+        await dataPreferences.flush();
+      }
+    } catch (err) {
+      console.error('保存首选项失败:', JSON.stringify(err));
+    }
   }
 
   private animateSteps() {
@@ -78,23 +113,31 @@ struct Index {
           ]
         })
 
-      // 装饰性圆形
-      Circle()
-        .width(300)
-        .height(300)
-        .fill('rgba(255, 255, 255, 0.1)')
-        .position({ x: '80%', y: '10%' })
-        .blur(50)
+      if (this.isLoading) {
+        // 加载中显示
+        LoadingProgress()
+          .width(48)
+          .height(48)
+          .color(Color.White)
+      } else {
+        // 装饰性圆形
+        Circle()
+          .width(300)
+          .height(300)
+          .fill('rgba(255, 255, 255, 0.1)')
+          .position({ x: '80%', y: '10%' })
+          .blur(50)
 
-      Circle()
-        .width(200)
-        .height(200)
-        .fill('rgba(255, 255, 255, 0.08)')
-        .position({ x: '10%', y: '70%' })
-        .blur(40)
+        Circle()
+          .width(200)
+          .height(200)
+          .fill('rgba(255, 255, 255, 0.08)')
+          .position({ x: '10%', y: '70%' })
+          .blur(40)
 
-      // 主内容区
-      this.buildMainContent()
+        // 主内容区
+        this.buildMainContent()
+      }
     }
     .width('100%')
     .height('100%')
@@ -156,7 +199,7 @@ struct Index {
       .margin({ bottom: 40 })
 
       // 主标题
-      Text('鸿蒙代码编辑器')
+      Text('元代码')
         .fontSize(this.breakpointService.isPhone() ? 32 : 42)
         .fontColor(Color.White)
         .fontWeight(FontWeight.Bold)
@@ -260,7 +303,7 @@ struct Index {
       // 主按钮
       Button({ type: ButtonType.Normal }) {
         Row() {
-          Text('🚀')
+          Text('✏️')
             .fontSize(20)
             .margin({ right: 8 })
           
@@ -286,39 +329,11 @@ struct Index {
         curve: Curve.EaseOut,
         delay: 1000
       })
-.onClick(() => {
-        router.pushUrl({ url: 'pages/CodeEditor' }).catch((err: Error) => {
+      .onClick(async () => {
+        await this.markWelcomeShown();
+        router.replaceUrl({ url: 'pages/CodeEditor' }).catch((err: Error) => {
           console.error('跳转失败:', err.message);
         });
-      })
-
-      // 次要按钮
-      Button({ type: ButtonType.Normal }) {
-        Row() {
-          Text('📖')
-            .fontSize(18)
-            .margin({ right: 8 })
-          
-          Text('了解更多')
-            .fontSize(15)
-        }
-      }
-      .width(this.breakpointService.isPhone() ? '100%' : 280)
-      .height(48)
-      .backgroundColor('rgba(255, 255, 255, 0.15)')
-      .fontColor(Color.White)
-      .borderRadius(24)
-      .border({
-        width: 1,
-        color: 'rgba(255, 255, 255, 0.3)'
-      })
-      .backdropBlur(10)
-      .scale({ x: this.currentStep >= 3 ? 1 : 0.9, y: this.currentStep >= 3 ? 1 : 0.9 })
-      .opacity(this.currentStep >= 3 ? 1 : 0)
-      .animation({
-        duration: 600,
-        curve: Curve.EaseOut,
-        delay: 1100
       })
     }
     .width('100%')
