@@ -7,18 +7,31 @@
         "material": {
           "certpath": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001A690AA76B434036FE87D04C43308951BF2DEDFC3C71C630146F8B3034DF8A44FEB213D2E9EEE7",
+          "keyPassword": "0000001BD96A05ECFE9CD86D272E8D2F3568AE550A1191895B198FCBCC5303772E2E720BE3DD180B05E54D",
           "profile": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.p12",
-          "storePassword": "0000001A558CEA33058FB035EE308F5EEF635DCE1B22A91115304574F103D31A75B547389D5EB5E4BAE4"
+          "storePassword": "0000001BC5E13C980AD3C2F34C954F65B3B06398FD4009C567775D6E012692E709323F3EFD41462DC35535"
+        }
+      },
+      {
+        "name": "release",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/xiaoyuan/StudioProjects/xxCode/id/code.cer",
+          "keyAlias": "release",
+          "keyPassword": "0000001C06A24CBB245C1934AED47A05A9BCA663B836E2B1AB89FB71E7AA40EABC9E5EB6728E168896F45DFF",
+          "profile": "/Users/xiaoyuan/StudioProjects/xxCode/id/1Release.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/xiaoyuan/StudioProjects/xxCode/id/ohkey1.p12",
+          "storePassword": "0000001C43E1D15BEB86A1D9CA48A2EDF9B7F404AD43D1DB87B217F9598F9A1AD43851089BC15CA71238E712"
         }
       }
     ],
     "products": [
       {
         "name": "default",
-        "signingConfig": "default",
+        "signingConfig": "release",
         "targetSdkVersion": "5.0.0(12)",
         "compatibleSdkVersion": "5.0.0(12)",
         "runtimeOS": "HarmonyOS",
@@ -32,7 +45,7 @@
     ],
     "buildModeSet": [
       {
-        "name": "debug",
+        "name": "debug"
       },
       {
         "name": "release"

@@ -2,7 +2,7 @@
  * xxCode 主编辑器页面
  * 简化版代码编辑器，支持新建、打开、保存文件
  */
-import { router, window } from '@kit.ArkUI';
+import { router, window, curves } from '@kit.ArkUI';
 import { picker } from '@kit.CoreFileKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { common } from '@kit.AbilityKit';
@@ -11,6 +11,13 @@ import { preferences } from '@kit.ArkData';
 import { ThemeService, Theme } from '../services/ThemeService';
 import { BreakpointService, Breakpoint } from '../services/BreakpointService';
 import { SyntaxHighlightService, Token } from '../services/SyntaxHighlightService';
+import { CodeFormatterService } from '../services/CodeFormatterService';
+import { FileManagerService, FileItem } from '../services/FileManagerService';
+import { FileTab } from '../models/FileTabModel';
+import { IconButton } from '../components/IconButton';
+import { TabBar } from '../components/TabBar';
+import { FileBrowser } from '../components/FileBrowser';
+import { NewFileDialog } from '../components/NewFileDialog';
 import { promptAction } from '@kit.ArkUI';
 
 // 文件类型配置
@@ -23,7 +30,24 @@ interface FileTypeOption {
 @Entry
 @Component
 struct CodeEditor {
-  // 编辑器状态
+  // 页面转场动画配置
+  pageTransition() {
+    // 进入动画：从右侧滑入
+    PageTransitionEnter({ duration: 350, curve: Curve.EaseOut })
+      .slide(SlideEffect.Right)
+    // 退出动画：向左侧滑出
+    PageTransitionExit({ duration: 350, curve: Curve.EaseIn })
+      .slide(SlideEffect.Left)
+  }
+  
+  // 多标签状态
+  @State tabs: FileTab[] = [];
+  @State currentTabId: string = '';
+  @State showFileBrowser: boolean = true;
+  @State sidebarWidth: number = 200; // 侧边栏宽度
+  @State internalFiles: FileItem[] = [];
+  
+  // 编辑器状态（当前标签）
   @State content: string = '';
   @State fileName: string = '未命名';
   @State filePath: string = '';
@@ -37,6 +61,32 @@ struct CodeEditor {
   @State showFileTypeMenu: boolean = false;
   @State isPreviewMode: boolean = false; // 预览模式（显示高亮）
   @State fontSize: number = 14; // 字体大小
+  @State editorScale: number = 1; // 编辑器缩放
+  
+  // 搜索替换状态
+  @State showSearchBar: boolean = false;
+  @State searchText: string = '';
+  @State replaceText: string = '';
+  @State searchResults: number[] = []; // 匹配的位置
+  @State currentSearchIndex: number = -1;
+  
+  // 动画曲线
+  private springCurve: ICurve = curves.springMotion(0.6, 0.8);
+  
+  // 对话框控制器
+  private newFileDialogController: CustomDialogController = new CustomDialogController({
+    builder: NewFileDialog({
+      bgColor: this.currentTheme.colors.surface,
+      textColor: this.currentTheme.colors.text,
+      primaryColor: this.currentTheme.colors.primary,
+      onConfirm: (fileName: string) => {
+        this.handleCreateFile(fileName);
+      }
+    }),
+    autoCancel: true,
+    alignment: DialogAlignment.Center,
+    customStyle: true
+  });
   
   // 避让区高度
   @StorageProp('topRectHeight') topRectHeight: number = 0;
@@ -48,7 +98,9 @@ struct CodeEditor {
   private context: common.UIAbilityContext | null = null;
   private themeService: ThemeService = ThemeService.getInstance();
   private breakpointService: BreakpointService = BreakpointService.getInstance();
+  private formatterService: CodeFormatterService = CodeFormatterService.getInstance();
   private syntaxService: SyntaxHighlightService = SyntaxHighlightService.getInstance();
+  private fileManager: FileManagerService = FileManagerService.getInstance();
   
   // 支持的文件类型
   private fileTypes: FileTypeOption[] = [
@@ -68,6 +120,15 @@ struct CodeEditor {
 
   aboutToAppear() {
     this.context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    
+    // 初始化文件管理器
+    if (this.context) {
+      this.fileManager.init(this.context);
+      this.loadInternalFiles();
+    }
+    
+    // 创建默认标签
+    this.createNewTab();
     
     // 注册断点系统
     this.breakpointService.register();
@@ -221,6 +282,7 @@ struct CodeEditor {
       this.filePath = fileUri;
       this.isModified = false;
       this.language = this.getLanguageFromFileName(extractedFileName);
+      this.lineCount = fileContent.split('\n').length;
 
       this.showToast('文件已打开');
     } catch (err) {
@@ -235,7 +297,22 @@ struct CodeEditor {
    */
   private async saveFile() {
     if (this.filePath) {
-      await this.saveToPath(this.filePath);
+      // 判断是内部文件还是外部文件
+      if (this.filePath.startsWith(this.fileManager.getCodesDir())) {
+        // 内部文件，直接保存
+        try {
+          this.fileManager.writeFile(this.filePath, this.content);
+          this.isModified = false;
+          this.saveCurrentTabState();
+          this.showToast('保存成功');
+          this.loadInternalFiles();
+        } catch (e) {
+          this.showToast('保存失败');
+        }
+      } else {
+        // 外部文件，使用原有方法
+        await this.saveToPath(this.filePath);
+      }
     } else {
       await this.saveFileAs();
     }
@@ -354,12 +431,17 @@ struct CodeEditor {
   }
 
   /**
-   * 切换主题
+   * 切换主题（带动画）
    */
   private cycleTheme() {
-    const nextTheme = this.themeService.getNextTheme();
-    this.themeService.switchTheme(nextTheme.id);
-    this.themeService.saveThemePreference(nextTheme.id);
+    animateTo({ 
+      duration: 300, 
+      curve: Curve.EaseInOut 
+    }, () => {
+      const nextTheme = this.themeService.getNextTheme();
+      this.themeService.switchTheme(nextTheme.id);
+      this.themeService.saveThemePreference(nextTheme.id);
+    });
   }
 
   /**
@@ -447,28 +529,93 @@ struct CodeEditor {
       // 状态栏占位区域
       Row()
         .width('100%')
-        .height(px2vp(this.topRectHeight))
+        .height(this.topRectHeight > 0 ? this.topRectHeight / 3 : 0)
         .backgroundColor(this.currentTheme.colors.surface)
 
       // 顶部工具栏
       this.buildToolbar()
 
-      // 编辑区域
-      Column() {
-        // 文件信息栏
-        this.buildFileInfoBar()
-        
-        // 编辑器主体
-        this.buildEditor()
+      // 主内容区域
+      Row() {
+        // 文件浏览器侧边栏（带伸缩动画）
+        FileBrowser({
+          files: this.internalFiles,
+          currentFilePath: this.filePath,
+          workspacePath: this.fileManager.getWorkspacePath(),
+          bgColor: this.currentTheme.colors.surface,
+          textColor: this.currentTheme.colors.text,
+          fileBorderColor: this.currentTheme.colors.border,
+          activeFileBgColor: this.currentTheme.editor.background,
+          onFileClick: (file: FileItem) => {
+            this.openInternalFile(file);
+          },
+          onNewFile: () => {
+            this.createInternalFile();
+          },
+          onDeleteFile: (file: FileItem) => {
+            this.deleteInternalFile(file);
+          }
+        })
+          .width(this.sidebarWidth)
+          .opacity(this.sidebarWidth > 0 ? 1 : 0)
+          .clip(true)
+          .animation({ 
+            duration: 350, 
+            curve: this.springCurve 
+          })
+
+        // 编辑区域
+        Column() {
+          // 标签栏（左对齐，带动画）
+          Row() {
+            TabBar({
+              tabs: this.tabs,
+              currentTabId: this.currentTabId,
+              bgColor: this.currentTheme.colors.surface,
+              textColor: this.currentTheme.colors.text,
+              tabBorderColor: this.currentTheme.colors.border,
+              activeTabBgColor: this.currentTheme.editor.background,
+              onTabClick: (tabId: string) => {
+                this.switchToTab(tabId);
+              },
+              onTabClose: (tabId: string) => {
+                this.closeTab(tabId);
+              }
+            })
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Start)
+          .animation({ 
+            duration: 350, 
+            curve: this.springCurve 
+          })
+          
+          // 文件信息栏
+          this.buildFileInfoBar()
+          
+          // 搜索替换栏
+          if (this.showSearchBar) {
+            this.buildSearchBar()
+          }
+          
+          // 编辑器主体
+          this.buildEditor()
+        }
+        .layoutWeight(1)
+        .backgroundColor(this.currentTheme.editor.background)
+        .scale({ x: this.editorScale, y: this.editorScale })
+        .animation({ 
+          duration: 300, 
+          curve: this.springCurve 
+        })
       }
       .layoutWeight(1)
       .width('100%')
-      .backgroundColor(this.currentTheme.editor.background)
 
       // 底部导航栏占位区域
       Row()
         .width('100%')
-        .height(px2vp(this.bottomRectHeight))
+        .height(this.bottomRectHeight > 0 ? this.bottomRectHeight / 3 : 0)
         .backgroundColor(this.currentTheme.editor.background)
     }
     .width('100%')
@@ -494,84 +641,132 @@ struct CodeEditor {
 
       // 右侧：操作按钮
       Row({ space: 8 }) {
-        // 设置按钮
-        Button({ type: ButtonType.Circle }) {
-          Text('⚙️')
-            .fontSize(16)
-        }
-        .width(36)
-        .height(36)
-        .backgroundColor(Color.Transparent)
-        .onClick(() => {
-          this.openSettings();
+        // 文件浏览器切换
+        IconButton({
+          icon: '📂',
+          text: '文件',
+          isActive: this.showFileBrowser,
+          bgColor: this.currentTheme.colors.surface,
+          activeColor: this.currentTheme.colors.primary,
+          textColor: this.currentTheme.colors.text,
+          btnSize: 32,
+          fontSize: 13,
+          onButtonClick: () => {
+            this.toggleFileBrowser();
+          }
+        })
+        
+        // 新建标签
+        IconButton({
+          icon: '➕',
+          text: '新标签',
+          bgColor: this.currentTheme.colors.surface,
+          textColor: this.currentTheme.colors.text,
+          btnSize: 32,
+          fontSize: 13,
+          onButtonClick: () => {
+            this.createNewTab();
+          }
+        })
+        
+        // 格式化按钮
+        IconButton({
+          icon: '✨',
+          text: '格式化',
+          bgColor: this.currentTheme.colors.surface,
+          textColor: this.currentTheme.colors.text,
+          btnSize: 32,
+          fontSize: 13,
+          onButtonClick: () => {
+            this.formatCode();
+          }
+        })
+        
+        // 搜索按钮
+        IconButton({
+          icon: '🔍',
+          text: '搜索',
+          isActive: this.showSearchBar,
+          bgColor: this.currentTheme.colors.surface,
+          activeColor: this.currentTheme.colors.primary,
+          textColor: this.currentTheme.colors.text,
+          btnSize: 32,
+          fontSize: 13,
+          onButtonClick: () => {
+            animateTo({ 
+              duration: 250, 
+              curve: Curve.EaseInOut 
+            }, () => {
+              this.showSearchBar = !this.showSearchBar;
+            });
+          }
         })
         
         // 编辑/预览切换
-        Button({ type: ButtonType.Normal }) {
-          Text(this.isPreviewMode ? '✏️ 编辑' : '👁️ 预览')
-            .fontSize(13)
-            .fontColor(this.isPreviewMode ? Color.White : this.currentTheme.colors.text)
-        }
-        .height(32)
-        .padding({ left: 12, right: 12 })
-        .backgroundColor(this.isPreviewMode ? this.currentTheme.colors.primary : this.currentTheme.colors.surface)
-        .borderRadius(6)
-        .onClick(() => {
-          this.isPreviewMode = !this.isPreviewMode;
+        IconButton({
+          icon: this.isPreviewMode ? '✏️' : '👁️',
+          text: this.isPreviewMode ? '编辑' : '预览',
+          isActive: this.isPreviewMode,
+          bgColor: this.currentTheme.colors.surface,
+          activeColor: this.currentTheme.colors.primary,
+          textColor: this.currentTheme.colors.text,
+          btnSize: 32,
+          fontSize: 13,
+          onButtonClick: () => {
+            animateTo({ 
+              duration: 300, 
+              curve: this.springCurve 
+            }, () => {
+              this.isPreviewMode = !this.isPreviewMode;
+              this.editorScale = this.isPreviewMode ? 0.98 : 1;
+            });
+            setTimeout(() => {
+              animateTo({ duration: 200 }, () => {
+                this.editorScale = 1;
+              });
+            }, 100);
+          }
         })
 
         // 主题切换
-        Button({ type: ButtonType.Circle }) {
-          Text('🎨')
-            .fontSize(16)
-        }
-        .width(36)
-        .height(36)
-        .backgroundColor(Color.Transparent)
-        .onClick(() => {
-          this.cycleTheme();
+        IconButton({
+          icon: '🎨',
+          text: '主题',
+          bgColor: this.currentTheme.colors.surface,
+          textColor: this.currentTheme.colors.text,
+          btnSize: 32,
+          fontSize: 13,
+          onButtonClick: () => {
+            this.cycleTheme();
+          }
         })
 
-        // 新建文件
-        Button({ type: ButtonType.Normal }) {
-          Text('新建')
-            .fontSize(13)
-            .fontColor(this.currentTheme.colors.text)
-        }
-        .height(32)
-        .padding({ left: 12, right: 12 })
-        .backgroundColor(this.currentTheme.colors.surface)
-        .borderRadius(6)
-        .onClick(() => {
-          this.newFile();
-        })
-
-        // 打开文件
-        Button({ type: ButtonType.Normal }) {
-          Text('打开')
-            .fontSize(13)
-            .fontColor(this.currentTheme.colors.text)
-        }
-        .height(32)
-        .padding({ left: 12, right: 12 })
-        .backgroundColor(this.currentTheme.colors.surface)
-        .borderRadius(6)
-        .onClick(() => {
-          this.openFile();
+        // 打开外部文件
+        IconButton({
+          icon: '📁',
+          text: '打开',
+          bgColor: this.currentTheme.colors.surface,
+          textColor: this.currentTheme.colors.text,
+          btnSize: 32,
+          fontSize: 13,
+          onButtonClick: () => {
+            this.openFile();
+          }
         })
 
         // 保存文件
-        Button({ type: ButtonType.Normal }) {
-          Text('保存')
-            .fontSize(13)
-            .fontColor(Color.White)
-        }
-        .height(32)
-        .padding({ left: 12, right: 12 })
-        .backgroundColor(this.isModified ? this.currentTheme.colors.primary : this.currentTheme.colors.surface)
-        .borderRadius(6)
-        .onClick(() => {
-          this.saveFile();
+        IconButton({
+          icon: '💾',
+          text: '保存',
+          isActive: this.isModified,
+          bgColor: this.currentTheme.colors.surface,
+          activeColor: this.currentTheme.colors.primary,
+          textColor: this.currentTheme.colors.text,
+          btnSize: 32,
+          fontSize: 13,
+          onButtonClick: () => {
+            this.saveFile();
+          }
         })
       }
     }
@@ -617,6 +812,127 @@ struct CodeEditor {
   }
 
   @Builder
+  buildSearchBar(): void {
+    Column() {
+      // 搜索行
+      Row({ space: 8 }) {
+        TextInput({ placeholder: '搜索', text: this.searchText })
+          .layoutWeight(1)
+          .height(36)
+          .fontSize(14)
+          .backgroundColor(this.currentTheme.editor.background)
+          .fontColor(this.currentTheme.colors.text)
+          .placeholderColor(this.currentTheme.colors.textSecondary)
+          .onChange((value: string) => {
+            this.searchText = value;
+          })
+          .onSubmit(() => {
+            this.performSearch();
+          })
+        
+        Button('搜索')
+          .height(36)
+          .fontSize(13)
+          .backgroundColor(this.currentTheme.colors.primary)
+          .fontColor(Color.White)
+          .stateEffect(true)
+          .onClick(() => {
+            this.performSearch();
+          })
+        
+        Button('上一个')
+          .height(36)
+          .fontSize(13)
+          .backgroundColor(this.currentTheme.editor.background)
+          .fontColor(this.currentTheme.colors.text)
+          .stateEffect(true)
+          .onClick(() => {
+            this.prevSearchResult();
+          })
+        
+        Button('下一个')
+          .height(36)
+          .fontSize(13)
+          .backgroundColor(this.currentTheme.editor.background)
+          .fontColor(this.currentTheme.colors.text)
+          .stateEffect(true)
+          .onClick(() => {
+            this.nextSearchResult();
+          })
+        
+        Button('关闭')
+          .height(36)
+          .fontSize(13)
+          .backgroundColor(Color.Transparent)
+          .fontColor(this.currentTheme.colors.text)
+          .stateEffect(true)
+          .onClick(() => {
+            this.showSearchBar = false;
+            this.searchResults = [];
+          })
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 8 })
+      
+      // 替换行
+      Row({ space: 8 }) {
+        TextInput({ placeholder: '替换为', text: this.replaceText })
+          .layoutWeight(1)
+          .height(36)
+          .fontSize(14)
+          .backgroundColor(this.currentTheme.editor.background)
+          .fontColor(this.currentTheme.colors.text)
+          .placeholderColor(this.currentTheme.colors.textSecondary)
+          .onChange((value: string) => {
+            this.replaceText = value;
+          })
+        
+        Button('替换')
+          .height(36)
+          .fontSize(13)
+          .backgroundColor(this.currentTheme.editor.background)
+          .fontColor(this.currentTheme.colors.text)
+          .stateEffect(true)
+          .onClick(() => {
+            this.replaceCurrent();
+          })
+        
+        Button('全部替换')
+          .height(36)
+          .fontSize(13)
+          .backgroundColor(this.currentTheme.editor.background)
+          .fontColor(this.currentTheme.colors.text)
+          .stateEffect(true)
+          .onClick(() => {
+            this.replaceAll();
+          })
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 4, bottom: 8 })
+      
+      // 搜索结果提示
+      if (this.searchResults.length > 0) {
+        Text(`${this.currentSearchIndex + 1} / ${this.searchResults.length}`)
+          .fontSize(12)
+          .fontColor(this.currentTheme.colors.text)
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .padding({ bottom: 4 })
+      }
+    }
+    .width('100%')
+    .backgroundColor(this.currentTheme.colors.surface)
+    .border({ width: { bottom: 1 }, color: this.currentTheme.colors.border })
+    .opacity(this.showSearchBar ? 1 : 0)
+    .height(this.showSearchBar ? undefined : 0)
+    .clip(true)
+    .animation({ 
+      duration: 250, 
+      curve: Curve.EaseInOut 
+    })
+  }
+
+  @Builder
   buildEditor(): void {
     if (this.isPreviewMode) {
       // 预览模式：行号和代码一起滚动
@@ -637,7 +953,7 @@ struct CodeEditor {
             }, (lineNum: number) => `ln_${lineNum}`)
           }
           .alignItems(HorizontalAlign.End)
-          .backgroundColor(this.currentTheme.colors.surface)
+          .backgroundColor(this.currentTheme.editor.background)
           
           // 分隔线
           Column()
@@ -656,15 +972,18 @@ struct CodeEditor {
                       .fontSize(this.fontSize)
                       .fontColor(this.getTokenColor(token.type))
                       .fontFamily('monospace')
-                  }, (token: Token, tokenIndex: number) => `${lineIndex}_${tokenIndex}_${token.start}`)
+                  }, (token: Token, tokenIndex: number) => `t_${lineIndex}_${tokenIndex}`)
                 }
-                .width('100%')
+                .fontSize(this.fontSize)
+                .fontFamily('monospace')
                 .lineHeight(this.fontSize + 8)
+                .textOverflow({ overflow: TextOverflow.Clip })
+                .maxLines(1)
               }
               .width('100%')
               .height(this.fontSize + 8)
               .alignItems(VerticalAlign.Top)
-            }, (line: string, lineIndex: number) => `hl_${lineIndex}_${line.substring(0, 20)}`)
+            }, (line: string, lineIndex: number) => `line_${lineIndex}`)
           }
           .layoutWeight(1)
           .padding({ left: 8, right: 16 })
@@ -672,10 +991,10 @@ struct CodeEditor {
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
-        .padding({ top: 12, bottom: 12 })
       }
       .width('100%')
       .layoutWeight(1)
+      .padding({ top: 12, bottom: 12 })
       .scrollBar(BarState.On)
       .scrollBarWidth(10)
       .scrollBarColor(this.currentTheme.colors.textSecondary)
@@ -699,14 +1018,15 @@ struct CodeEditor {
             }, (lineNum: number) => `edit_ln_${lineNum}`)
           }
           .alignItems(HorizontalAlign.End)
-          .backgroundColor(this.currentTheme.colors.surface)
+          .backgroundColor(this.currentTheme.editor.background)
           
           // 分隔线
           Column()
             .width(1)
+            .height('100%')
             .backgroundColor(this.currentTheme.colors.border)
           
-          // 右侧代码编辑区 - 使用固定高度的 TextArea
+          // 右侧代码编辑区
           Column() {
             TextArea({ text: this.content, placeholder: '在此输入代码...' })
               .width('100%')
@@ -719,6 +1039,7 @@ struct CodeEditor {
               .padding(0)
               .fontFamily('monospace')
               .lineHeight(this.fontSize + 8)
+              .wordBreak(WordBreak.BREAK_ALL)
               .onChange((value: string) => {
                 this.onContentChange(value);
               })
@@ -729,10 +1050,10 @@ struct CodeEditor {
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
-        .padding({ top: 12, bottom: 12 })
       }
       .width('100%')
       .layoutWeight(1)
+      .padding({ top: 12, bottom: 12 })
       .scrollBar(BarState.On)
       .scrollBarWidth(10)
       .scrollBarColor(this.currentTheme.colors.textSecondary)
@@ -750,11 +1071,16 @@ struct CodeEditor {
   }
 
   /**
-   * 获取显示的行号（至少显示 100 行，保证一屏都有行号）
+   * 获取显示的行号
+   * 预览模式：只显示实际代码行数
+   * 编辑模式：至少显示100行，方便编辑
    */
   private getDisplayLineNumbers(): number[] {
-    const minLines = 100; // 至少显示 100 行
-    const totalLines = Math.max(this.lineCount, minLines);
+    // 直接根据内容计算行数，不依赖 lineCount 状态
+    const actualLines = this.content.split('\n').length;
+    // 预览模式只显示实际行数，编辑模式至少显示100行
+    const minLines = this.isPreviewMode ? actualLines : 100;
+    const totalLines = Math.max(actualLines, minLines);
     const lines: number[] = [];
     for (let i = 1; i <= totalLines; i++) {
       lines.push(i);
@@ -797,6 +1123,102 @@ struct CodeEditor {
   }
 
   /**
+   * 搜索文本
+   */
+  private performSearch() {
+    if (!this.searchText) {
+      this.searchResults = [];
+      this.currentSearchIndex = -1;
+      return;
+    }
+    
+    const results: number[] = [];
+    const searchLower = this.searchText.toLowerCase();
+    const contentLower = this.content.toLowerCase();
+    
+    let index = contentLower.indexOf(searchLower);
+    while (index !== -1) {
+      results.push(index);
+      index = contentLower.indexOf(searchLower, index + 1);
+    }
+    
+    this.searchResults = results;
+    this.currentSearchIndex = results.length > 0 ? 0 : -1;
+    
+    if (results.length > 0) {
+      this.showToast(`找到 ${results.length} 个匹配项`);
+    } else {
+      this.showToast('未找到匹配项');
+    }
+  }
+  
+  /**
+   * 跳转到下一个搜索结果
+   */
+  private nextSearchResult() {
+    if (this.searchResults.length === 0) return;
+    this.currentSearchIndex = (this.currentSearchIndex + 1) % this.searchResults.length;
+  }
+  
+  /**
+   * 跳转到上一个搜索结果
+   */
+  private prevSearchResult() {
+    if (this.searchResults.length === 0) return;
+    this.currentSearchIndex = (this.currentSearchIndex - 1 + this.searchResults.length) % this.searchResults.length;
+  }
+  
+  /**
+   * 替换当前匹配项
+   */
+  private replaceCurrent() {
+    if (this.currentSearchIndex === -1 || this.searchResults.length === 0) return;
+    
+    const pos = this.searchResults[this.currentSearchIndex];
+    const before = this.content.substring(0, pos);
+    const after = this.content.substring(pos + this.searchText.length);
+    
+    this.content = before + this.replaceText + after;
+    this.isModified = true;
+    this.lineCount = this.content.split('\n').length;
+    
+    // 重新搜索
+    this.performSearch();
+  }
+  
+  /**
+   * 替换所有匹配项
+   */
+  private replaceAll() {
+    if (this.searchResults.length === 0) return;
+    
+    const regex = new RegExp(this.searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    this.content = this.content.replace(regex, this.replaceText);
+    this.isModified = true;
+    this.lineCount = this.content.split('\n').length;
+    
+    this.showToast(`已替换 ${this.searchResults.length} 处`);
+    this.searchResults = [];
+    this.currentSearchIndex = -1;
+  }
+  
+  /**
+   * 格式化代码
+   */
+  private formatCode() {
+    try {
+      const formatted = this.formatterService.format(this.content, this.language);
+      this.content = formatted;
+      this.isModified = true;
+      this.lineCount = this.content.split('\n').length;
+      this.showToast('代码已格式化');
+    } catch (e) {
+      this.showToast('格式化失败');
+      console.error('格式化错误:', JSON.stringify(e));
+    }
+  }
+
+  /**
    * 返回上一页（封装新 API）
    */
   private goBack() {
@@ -805,5 +1227,259 @@ struct CodeEditor {
     } catch (e) {
       console.error('router.back error:', JSON.stringify(e));
     }
+  }
+
+  /**
+   * 加载应用内部文件列表
+   */
+  private loadInternalFiles() {
+    try {
+      this.internalFiles = this.fileManager.listFiles();
+    } catch (e) {
+      console.error('加载文件列表失败:', JSON.stringify(e));
+    }
+  }
+
+  /**
+   * 创建新标签
+   */
+  private createNewTab() {
+    const newTab = new FileTab(
+      FileTab.generateId(),
+      '未命名.txt',
+      '',
+      '',
+      'text'
+    );
+    this.tabs.push(newTab);
+    this.switchToTab(newTab.id);
+  }
+
+  /**
+   * 切换到指定标签
+   */
+  private switchToTab(tabId: string) {
+    // 保存当前标签内容
+    this.saveCurrentTabState();
+    
+    // 切换标签
+    this.currentTabId = tabId;
+    const tab = this.tabs.find(t => t.id === tabId);
+    if (tab) {
+      this.content = tab.content;
+      this.fileName = tab.fileName;
+      this.filePath = tab.filePath;
+      this.isModified = tab.isModified;
+      this.language = tab.language;
+      this.lineCount = tab.content.split('\n').length;
+    }
+  }
+
+  /**
+   * 保存当前标签状态
+   */
+  private saveCurrentTabState() {
+    const currentTab = this.tabs.find(t => t.id === this.currentTabId);
+    if (currentTab) {
+      currentTab.content = this.content;
+      currentTab.fileName = this.fileName;
+      currentTab.filePath = this.filePath;
+      currentTab.isModified = this.isModified;
+      currentTab.language = this.language;
+    }
+  }
+
+  /**
+   * 关闭标签
+   */
+  private closeTab(tabId: string) {
+    const tabIndex = this.tabs.findIndex(t => t.id === tabId);
+    if (tabIndex === -1) return;
+    
+    const tab = this.tabs[tabIndex];
+    
+    if (tab.isModified) {
+      this.showConfirmDialog('提示', '文件未保存，是否保存？', (index: number) => {
+        if (index === 0) {
+          // 不保存，直接关闭
+          this.removeTab(tabId, tabIndex);
+        } else if (index === 1) {
+          // 保存后关闭
+          this.saveTabFile(tab).then(() => {
+            this.removeTab(tabId, tabIndex);
+          });
+        }
+      });
+    } else {
+      this.removeTab(tabId, tabIndex);
+    }
+  }
+
+  /**
+   * 移除标签
+   */
+  private removeTab(tabId: string, tabIndex: number) {
+    this.tabs.splice(tabIndex, 1);
+    
+    // 如果关闭的是当前标签，切换到其他标签
+    if (tabId === this.currentTabId) {
+      if (this.tabs.length > 0) {
+        const newIndex = Math.min(tabIndex, this.tabs.length - 1);
+        this.switchToTab(this.tabs[newIndex].id);
+      } else {
+        // 没有标签了，创建新标签
+        this.createNewTab();
+      }
+    }
+  }
+
+  /**
+   * 保存标签文件
+   */
+  private async saveTabFile(tab: FileTab): Promise<void> {
+    if (tab.filePath && tab.filePath.startsWith(this.fileManager.getCodesDir())) {
+      // 内部文件，直接保存
+      try {
+        this.fileManager.writeFile(tab.filePath, tab.content);
+        tab.isModified = false;
+        this.showToast('保存成功');
+      } catch (e) {
+        this.showToast('保存失败');
+      }
+    } else {
+      // 外部文件或新文件，使用系统选择器
+      await this.saveFileAs();
+    }
+  }
+
+  /**
+   * 从文件浏览器打开文件
+   */
+  private openInternalFile(file: FileItem) {
+    try {
+      // 检查是否已经打开
+      const existingTab = this.tabs.find(t => t.filePath === file.path);
+      if (existingTab) {
+        this.switchToTab(existingTab.id);
+        return;
+      }
+      
+      // 读取文件内容
+      const content = this.fileManager.readFile(file.path);
+      const language = FileTab.getLanguageFromPath(file.path);
+      
+      // 创建新标签
+      const newTab = new FileTab(
+        FileTab.generateId(),
+        file.name,
+        file.path,
+        content,
+        language
+      );
+      
+      this.tabs.push(newTab);
+      this.switchToTab(newTab.id);
+      
+    } catch (e) {
+      this.showToast('打开文件失败');
+      console.error('打开内部文件失败:', JSON.stringify(e));
+    }
+  }
+
+  /**
+   * 创建新的内部文件
+   */
+  private createInternalFile() {
+    // 重新创建对话框控制器以使用最新的主题
+    this.newFileDialogController = new CustomDialogController({
+      builder: NewFileDialog({
+        bgColor: this.currentTheme.colors.surface,
+        textColor: this.currentTheme.colors.text,
+        primaryColor: this.currentTheme.colors.primary,
+        onConfirm: (fileName: string) => {
+          this.handleCreateFile(fileName);
+        }
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Center,
+      customStyle: true
+    });
+    
+    this.newFileDialogController.open();
+  }
+
+  /**
+   * 处理创建文件
+   */
+  private handleCreateFile(fileName: string) {
+    try {
+      const filePath = this.fileManager.createFile(fileName, '');
+      this.loadInternalFiles();
+      
+      // 打开新创建的文件
+      const file: FileItem = {
+        name: fileName,
+        path: filePath,
+        isDirectory: false,
+        size: 0,
+        modifiedTime: Date.now()
+      };
+      this.openInternalFile(file);
+      
+      this.showToast('文件已创建');
+    } catch (e) {
+      this.showToast('创建文件失败');
+      console.error('创建文件失败:', JSON.stringify(e));
+    }
+  }
+
+  /**
+   * 删除内部文件
+   */
+  private deleteInternalFile(file: FileItem) {
+    promptAction.showDialog({
+      title: '确认删除',
+      message: `确定要删除 ${file.name} 吗？`,
+      buttons: [
+        { text: '取消', color: this.currentTheme.colors.textSecondary },
+        { text: '删除', color: '#FF4444' }
+      ]
+    }).then((result) => {
+      if (result.index === 1) {
+        try {
+          this.fileManager.deleteFile(file.path);
+          this.loadInternalFiles();
+          
+          // 如果文件在标签中打开，关闭标签
+          const tab = this.tabs.find(t => t.filePath === file.path);
+          if (tab) {
+            this.closeTab(tab.id);
+          }
+          
+          this.showToast('文件已删除');
+        } catch (e) {
+          this.showToast('删除文件失败');
+        }
+      }
+    });
+  }
+
+  /**
+   * 切换文件浏览器显示
+   */
+  private toggleFileBrowser() {
+    animateTo({ 
+      duration: 350, 
+      curve: this.springCurve 
+    }, () => {
+      if (this.showFileBrowser) {
+        // 收起：宽度变为0
+        this.sidebarWidth = 0;
+      } else {
+        // 展开：宽度变为200
+        this.sidebarWidth = 200;
+      }
+      this.showFileBrowser = !this.showFileBrowser;
+    });
   }
 }

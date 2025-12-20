@@ -17,6 +17,10 @@
       "value": "需要访问文档权限来打开、编辑和保存代码文件"
     },
     {
+      "name": "permission_download_reason",
+      "value": "需要访问下载目录来保存和管理代码文件，方便您在文件管理器中查看"
+    },
+    {
       "name": "index_page_title",
       "value": "欢迎"
     },

@@ -10,6 +10,14 @@ import { ThemeService, Theme } from '../services/ThemeService';
 @Entry
 @Component
 struct Settings {
+  // 页面转场动画
+  pageTransition() {
+    PageTransitionEnter({ duration: 350, curve: Curve.EaseOut })
+      .slide(SlideEffect.Right)
+    PageTransitionExit({ duration: 350, curve: Curve.EaseIn })
+      .slide(SlideEffect.Left)
+  }
+  
   @State currentTheme: Theme = ThemeService.getInstance().getCurrentTheme();
   @State fontSize: number = 14;
   @StorageProp('topRectHeight') topRectHeight: number = 0;
@@ -80,7 +88,8 @@ struct Settings {
 
   build() {
     Column() {
-      Row().width('100%').height(px2vp(this.topRectHeight)).backgroundColor(this.currentTheme.colors.surface)
+      // 状态栏占位（topRectHeight 已经是 px 值，需要转换为 vp）
+      Row().width('100%').height(this.topRectHeight > 0 ? this.topRectHeight / 3 : 0).backgroundColor(this.currentTheme.colors.surface)
       
       // 顶部导航栏
       Row() {
@@ -113,7 +122,8 @@ struct Settings {
       }
       .layoutWeight(1).width('100%').backgroundColor(this.currentTheme.colors.background)
       
-      Row().width('100%').height(px2vp(this.bottomRectHeight)).backgroundColor(this.currentTheme.colors.background)
+      // 底部导航栏占位
+      Row().width('100%').height(this.bottomRectHeight > 0 ? this.bottomRectHeight / 3 : 0).backgroundColor(this.currentTheme.colors.background)
     }
     .width('100%').height('100%').backgroundColor(this.currentTheme.colors.background)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])

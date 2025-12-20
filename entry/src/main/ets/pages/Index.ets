@@ -23,6 +23,15 @@ class FeatureCardData {
 @Entry
 @Component
 struct Index {
+  // 页面转场动画配置
+  pageTransition() {
+    // 进入动画：从右侧滑入
+    PageTransitionEnter({ duration: 350, curve: Curve.EaseOut })
+      .slide(SlideEffect.Right)
+    // 退出动画：向左侧滑出
+    PageTransitionExit({ duration: 350, curve: Curve.EaseIn })
+      .slide(SlideEffect.Left)
+  }
   @State private currentStep: number = 0;
   @State private currentBreakpoint: Breakpoint = 'sm';
   @State private isLoading: boolean = true;
@@ -51,7 +60,7 @@ struct Index {
       
       if (welcomed) {
         // 已看过欢迎页，直接跳转到编辑器
-        router.replaceUrl({ url: 'pages/CodeEditor' });
+        router.pushUrl({ url: 'pages/CodeEditor' }, router.RouterMode.Single);
         return;
       }
     } catch (err) {
@@ -331,9 +340,10 @@ struct Index {
       })
       .onClick(async () => {
         await this.markWelcomeShown();
-        router.replaceUrl({ url: 'pages/CodeEditor' }).catch((err: Error) => {
-          console.error('跳转失败:', err.message);
-        });
+        // 使用 pushUrl 触发转场动画
+        router.pushUrl({ 
+          url: 'pages/CodeEditor'
+        }, router.RouterMode.Single);
       })
     }
     .width('100%')

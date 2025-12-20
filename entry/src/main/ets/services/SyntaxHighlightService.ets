@@ -416,10 +416,37 @@ export class SyntaxHighlightService {
   }
 
   /**
-   * 纯文本（无语法高亮）
+   * 纯文本（无语法高亮，但保留空格处理）
    */
   private tokenizeText(code: string): Token[] {
-    return [{ type: 'text', value: code, start: 0, end: code.length }];
+    const tokens: Token[] = [];
+    let i = 0;
+    
+    while (i < code.length) {
+      // 空白字符单独处理
+      if (/\s/.test(code[i])) {
+        const start = i;
+        while (i < code.length && /\s/.test(code[i])) {
+          i++;
+        }
+        tokens.push({ type: 'text', value: code.substring(start, i), start, end: i });
+        continue;
+      }
+      
+      // 非空白字符
+      const start = i;
+      while (i < code.length && !/\s/.test(code[i])) {
+        i++;
+      }
+      tokens.push({ type: 'text', value: code.substring(start, i), start, end: i });
+    }
+    
+    // 如果代码为空，返回空 token
+    if (tokens.length === 0) {
+      tokens.push({ type: 'text', value: '', start: 0, end: 0 });
+    }
+    
+    return tokens;
   }
 
   /**

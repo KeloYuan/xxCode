@@ -2,13 +2,21 @@
  * 元代码 用户协议页面
  * 首次启动时显示，同意后不再显示
  */
-import { router } from '@kit.ArkUI';
+import { router, window } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
 
 @Entry
 @Component
 struct Agreement {
+  // 页面转场动画
+  pageTransition() {
+    PageTransitionEnter({ duration: 350, curve: Curve.EaseOut })
+      .slide(SlideEffect.Right)
+    PageTransitionExit({ duration: 350, curve: Curve.EaseIn })
+      .slide(SlideEffect.Left)
+  }
+  
   @State isAgreed: boolean = false;
   @State isLoading: boolean = true;
   @StorageProp('topRectHeight') topRectHeight: number = 0;
@@ -20,6 +28,9 @@ struct Agreement {
   async aboutToAppear() {
     this.context = this.getUIContext().getHostContext() as common.UIAbilityContext;
     
+    // 设置状态栏文字为深色（因为背景是浅色）
+    this.setStatusBarStyle(false);
+    
     try {
       // 获取首选项存储
       this.dataPreferences = await preferences.getPreferences(this.context, 'user_settings');
@@ -28,7 +39,7 @@ struct Agreement {
       
       if (agreed) {
         // 已同意，直接跳转到首页
-        router.replaceUrl({ url: 'pages/Index' });
+        router.pushUrl({ url: 'pages/Index' }, router.RouterMode.Single);
         return;
       }
     } catch (err) {
@@ -44,8 +55,8 @@ struct Agreement {
         await this.dataPreferences.put('agreement_accepted', true);
         await this.dataPreferences.flush();
       }
-      // 跳转到首页
-      router.replaceUrl({ url: 'pages/Index' });
+      // 跳转到首页（使用pushUrl触发转场动画）
+      router.pushUrl({ url: 'pages/Index' }, router.RouterMode.Single);
     } catch (err) {
       console.error('保存首选项失败:', JSON.stringify(err));
     }
@@ -145,6 +156,24 @@ struct Agreement {
     .width('100%')
     .height('100%')
     .alignItems(HorizontalAlign.Center)
+  }
+
+  /**
+   * 设置状态栏样式
+   * @param isDark true=白色文字(深色背景), false=黑色文字(浅色背景)
+   */
+  private setStatusBarStyle(isDark: boolean) {
+    try {
+      if (!this.context) return;
+      window.getLastWindow(this.context).then((win) => {
+        win.setWindowSystemBarProperties({
+          statusBarContentColor: isDark ? '#FFFFFF' : '#000000',
+          navigationBarContentColor: isDark ? '#FFFFFF' : '#000000'
+        });
+      });
+    } catch (e) {
+      console.error('设置状态栏样式失败:', JSON.stringify(e));
+    }
   }
 
   private getAgreementText(): string {
