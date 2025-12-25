@@ -7,11 +7,11 @@
         "material": {
           "certpath": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001BD96A05ECFE9CD86D272E8D2F3568AE550A1191895B198FCBCC5303772E2E720BE3DD180B05E54D",
+          "keyPassword": "0000001BE28089A151746F6FB3BD16998C1B9227C4677CF2271203B8D62735967FBF73537F9BD9924AC4C6",
           "profile": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.p12",
-          "storePassword": "0000001BC5E13C980AD3C2F34C954F65B3B06398FD4009C567775D6E012692E709323F3EFD41462DC35535"
+          "storePassword": "0000001B87DBA76702B9523170E539C8EAF3BE5E4D107D2512B6BEB84077252A3C2DF65CB5D69BE96F0547"
         }
       },
       {
@@ -20,11 +20,11 @@
         "material": {
           "certpath": "/Users/xiaoyuan/StudioProjects/xxCode/id/code.cer",
           "keyAlias": "release",
-          "keyPassword": "0000001C06A24CBB245C1934AED47A05A9BCA663B836E2B1AB89FB71E7AA40EABC9E5EB6728E168896F45DFF",
+          "keyPassword": "0000001C714E6EC071100C5DDB99C1032D5E98C7637EC5D92A9C65CA62A66869C45999643FF660400D277D45",
           "profile": "/Users/xiaoyuan/StudioProjects/xxCode/id/1Release.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "/Users/xiaoyuan/StudioProjects/xxCode/id/ohkey1.p12",
-          "storePassword": "0000001C43E1D15BEB86A1D9CA48A2EDF9B7F404AD43D1DB87B217F9598F9A1AD43851089BC15CA71238E712"
+          "storePassword": "0000001CFABA045AD74D7B970D1E2DEB824F3EA30FB7268E24783C385E1F9AFB887E7F7A86908D6D44EDD370"
         }
       }
     ],

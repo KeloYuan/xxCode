@@ -1,38 +1,6 @@
 {
   "string": [
     {
-      "name": "module_desc",
-      "value": "元代码编辑器模块"
-    },
-    {
-      "name": "EntryAbility_desc",
-      "value": "元代码 - HarmonyOS代码编辑器"
-    },
-    {
-      "name": "EntryAbility_label",
-      "value": "元代码"
-    },
-    {
-      "name": "permission_reason",
-      "value": "需要访问文档权限来打开、编辑和保存代码文件"
-    },
-    {
-      "name": "permission_documents_reason",
-      "value": "需要访问文档目录来保存和管理您的代码文件，方便在文件管理器中查看和编辑"
-    },
-    {
-      "name": "permission_download_reason",
-      "value": "需要访问下载目录来保存和管理代码文件，方便您在文件管理器中查看"
-    },
-    {
-      "name": "index_page_title",
-      "value": "欢迎"
-    },
-    {
-      "name": "editor_page_title",
-      "value": "代码编辑器"
-    },
-    {
       "name": "app_name",
       "value": "元代码"
     },

@@ -10,14 +10,22 @@ export struct NewFileDialog {
   @Prop bgColor: ResourceColor = '#2D2D30';
   @Prop textColor: ResourceColor = '#FFFFFF';
   @Prop primaryColor: ResourceColor = '#667eea';
+  @Prop titleText: string = '新建文件';
+  @Prop confirmText: string = '创建';
+  @Prop initialName: string = '';
+  @Prop placeholderText: string = '例如: test.js';
   onConfirm?: (fileName: string) => void;
   
   private springCurve: ICurve = curves.springMotion(0.6, 0.8);
 
+  aboutToAppear() {
+    this.fileName = this.initialName;
+  }
+
   build() {
     Column({ space: 16 }) {
       // 标题
-      Text('新建文件')
+      Text(this.titleText)
         .fontSize(18)
         .fontWeight(FontWeight.Bold)
         .fontColor(this.textColor)
@@ -31,7 +39,7 @@ export struct NewFileDialog {
           .opacity(0.7)
           .width('100%')
         
-        TextInput({ placeholder: '例如: test.js', text: this.fileName })
+        TextInput({ placeholder: this.placeholderText, text: this.fileName })
           .width('100%')
           .height(40)
           .fontSize(14)
@@ -57,10 +65,10 @@ export struct NewFileDialog {
           .fontColor(this.textColor)
           .stateEffect(true)
           .onClick(() => {
-            this.controller.close();
+            this.safeClose();
           })
         
-        Button('创建')
+        Button(this.confirmText)
           .layoutWeight(1)
           .height(40)
           .fontSize(14)
@@ -75,7 +83,7 @@ export struct NewFileDialog {
       }
       .width('100%')
     }
-    .width('100%')
+    .width(360)
     .padding(20)
     .backgroundColor(this.bgColor)
     .borderRadius(12)
@@ -87,7 +95,15 @@ export struct NewFileDialog {
       if (this.onConfirm) {
         this.onConfirm(trimmedName);
       }
+      this.safeClose();
+    }
+  }
+
+  private safeClose() {
+    try {
       this.controller.close();
+    } catch (e) {
+      console.error('dialog close error:', JSON.stringify(e));
     }
   }
 }

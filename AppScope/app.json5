@@ -1,9 +1,9 @@
 {
   "app": {
     "bundleName": "com.niki.xxcode",
-    "vendor": "example",
-    "versionCode": 1000000,
-    "versionName": "1.0.0",
+    "vendor": "谢旺涛",
+    "versionCode": 3000000,
+    "versionName": "3.0.0",
     "icon": "$media:layered_image",
     "label": "$string:app_name"
   }

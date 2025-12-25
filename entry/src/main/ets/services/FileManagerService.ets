@@ -1,6 +1,6 @@
 /**
  * 文件管理服务
- * 管理应用内的文件和目录
+ * 管理应用内的文件，提供导出到用户目录的功能
  */
 import { fileIo } from '@kit.CoreFileKit';
 import { common } from '@kit.AbilityKit';
@@ -16,8 +16,9 @@ export interface FileItem {
 
 export class FileManagerService {
   private static instance: FileManagerService | null = null;
-  private appFilesDir: string = '';
   private workspaceDir: string = '';
+  private workspaceLabel: string = 'App Workspace';
+  private context: common.UIAbilityContext | null = null;
 
   private constructor() {}
 
@@ -32,9 +33,10 @@ export class FileManagerService {
    * 初始化文件管理器
    * 使用应用内部存储的codes目录作为工作区
    */
-  public init(context: common.UIAbilityContext) {
-    this.appFilesDir = context.filesDir;
-    this.workspaceDir = `${this.appFilesDir}/codes`;
+  public async init(context: common.UIAbilityContext): Promise<void> {
+    this.context = context;
+    this.workspaceDir = `${context.filesDir}/codes`;
+    this.workspaceLabel = this.workspaceDir;
     
     try {
       // 确保工作区目录存在
@@ -60,7 +62,18 @@ export class FileManagerService {
    * 获取工作区显示路径
    */
   public getWorkspacePath(): string {
-    return '应用工作区';
+    return this.workspaceLabel || 'App Workspace';
+  }
+
+  /**
+   * 设置工作区目录（来自系统选择的文件夹或文件路径）
+   */
+  public setWorkspaceDir(dirPath: string): void {
+    if (!dirPath) {
+      return;
+    }
+    this.workspaceDir = dirPath;
+    this.workspaceLabel = dirPath;
   }
 
   /**

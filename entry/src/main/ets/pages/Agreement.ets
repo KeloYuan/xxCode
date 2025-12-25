@@ -2,19 +2,19 @@
  * 元代码 用户协议页面
  * 首次启动时显示，同意后不再显示
  */
-import { router, window } from '@kit.ArkUI';
+import { router, window, curves } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
 
 @Entry
 @Component
 struct Agreement {
-  // 页面转场动画
+  // 页面转场动画 - 统一的滑动效果
   pageTransition() {
-    PageTransitionEnter({ duration: 350, curve: Curve.EaseOut })
+    PageTransitionEnter({ duration: 240, curve: Curve.EaseOut })
       .slide(SlideEffect.Right)
-    PageTransitionExit({ duration: 350, curve: Curve.EaseIn })
-      .slide(SlideEffect.Left)
+    PageTransitionExit({ duration: 240, curve: Curve.EaseIn })
+      .slide(SlideEffect.Right)
   }
   
   @State isAgreed: boolean = false;

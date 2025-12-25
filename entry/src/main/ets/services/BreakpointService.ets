@@ -4,6 +4,7 @@
  */
 
 import mediaquery from '@ohos.mediaquery';
+import { display } from '@kit.ArkUI';
 
 export type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
@@ -18,12 +19,13 @@ export interface BreakpointConfig {
 
 /**
  * HarmonyOS 标准断点配置
+ * 移动端适配：xs < 360dp, sm 360-480dp
  */
 export class BreakpointConfigs {
   static readonly xs: BreakpointConfig = {
     name: 'xs',
     minWidth: 0,
-    maxWidth: 320,
+    maxWidth: 360,
     columns: 4,
     gutter: 12,
     margin: 12
@@ -31,8 +33,8 @@ export class BreakpointConfigs {
   
   static readonly sm: BreakpointConfig = {
     name: 'sm',
-    minWidth: 320,
-    maxWidth: 600,
+    minWidth: 360,
+    maxWidth: 480,
     columns: 4,
     gutter: 16,
     margin: 16
@@ -40,7 +42,7 @@ export class BreakpointConfigs {
   
   static readonly md: BreakpointConfig = {
     name: 'md',
-    minWidth: 600,
+    minWidth: 480,
     maxWidth: 840,
     columns: 8,
     gutter: 24,
@@ -89,11 +91,12 @@ export class BreakpointService {
   private xlListener: mediaquery.MediaQueryListener;
   
   private isRegistered: boolean = false;
+  private orientationCallback: ((displayId: number) => void) | null = null;
 
   private constructor() {
-    this.xsListener = mediaquery.matchMediaSync('(0vp <= width < 320vp)');
-    this.smListener = mediaquery.matchMediaSync('(320vp <= width < 600vp)');
-    this.mdListener = mediaquery.matchMediaSync('(600vp <= width < 840vp)');
+    this.xsListener = mediaquery.matchMediaSync('(0vp <= width < 360vp)');
+    this.smListener = mediaquery.matchMediaSync('(360vp <= width < 480vp)');
+    this.mdListener = mediaquery.matchMediaSync('(480vp <= width < 840vp)');
     this.lgListener = mediaquery.matchMediaSync('(840vp <= width < 1280vp)');
     this.xlListener = mediaquery.matchMediaSync('(width >= 1280vp)');
   }
@@ -140,6 +143,20 @@ export class BreakpointService {
       }
     });
 
+    // 注册屏幕旋转监听器
+    this.orientationCallback = (displayId: number) => {
+      // 屏幕旋转时重新检测断点
+      const newBreakpoint = this.detectCurrentBreakpoint();
+      // 即使断点没变，也触发更新以重新计算布局
+      this.notifyListeners(newBreakpoint);
+    };
+    
+    try {
+      display.on('change', this.orientationCallback);
+    } catch (error) {
+      console.error('[BreakpointService] 注册屏幕旋转监听失败:', error);
+    }
+
     this.currentBreakpoint = this.detectCurrentBreakpoint();
     this.isRegistered = true;
   }
@@ -154,6 +171,16 @@ export class BreakpointService {
     this.mdListener.off('change');
     this.lgListener.off('change');
     this.xlListener.off('change');
+    
+    // 取消屏幕旋转监听
+    if (this.orientationCallback) {
+      try {
+        display.off('change', this.orientationCallback);
+      } catch (error) {
+        console.error('[BreakpointService] 取消屏幕旋转监听失败:', error);
+      }
+      this.orientationCallback = null;
+    }
     
     this.isRegistered = false;
   }
@@ -197,6 +224,30 @@ export class BreakpointService {
     return ['lg', 'xl'].includes(this.currentBreakpoint);
   }
 
+  /**
+   * 判断是否为移动端模式（小屏手机）
+   * 移动端使用侧滑抽屉布局
+   */
+  public isMobile(): boolean {
+    return this.currentBreakpoint === 'xs' || this.currentBreakpoint === 'sm';
+  }
+
+  /**
+   * 获取抽屉宽度
+   * xs (< 360dp): 240dp
+   * sm (360-600dp): 280dp
+   * 其他: 0 (不使用抽屉)
+   */
+  public getDrawerWidth(): number {
+    if (this.currentBreakpoint === 'xs') {
+      return 240;
+    }
+    if (this.currentBreakpoint === 'sm') {
+      return 280;
+    }
+    return 0; // 大屏不使用抽屉
+  }
+
   private detectCurrentBreakpoint(): Breakpoint {
     if (this.xsListener.matches) {
       return 'xs';
@@ -215,15 +266,21 @@ export class BreakpointService {
   private updateBreakpoint(breakpoint: Breakpoint): void {
     if (this.currentBreakpoint !== breakpoint) {
       this.currentBreakpoint = breakpoint;
-      
-      this.listeners.forEach(listener => {
-        try {
-          listener(breakpoint);
-        } catch (error) {
-          console.error('[BreakpointService] 监听器执行错误:', error);
-        }
-      });
+      this.notifyListeners(breakpoint);
     }
+  }
+  
+  /**
+   * 通知所有监听器断点变化
+   */
+  private notifyListeners(breakpoint: Breakpoint): void {
+    this.listeners.forEach(listener => {
+      try {
+        listener(breakpoint);
+      } catch (error) {
+        console.error('[BreakpointService] 监听器执行错误:', error);
+      }
+    });
   }
 }
 

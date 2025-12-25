@@ -4,6 +4,11 @@
     "pages/Index",
     "pages/CodeEditor",
     "pages/TabletCodeEditor",
-    "pages/Settings"
+    "pages/Settings",
+    "pages/RecentProjects",
+    "pages/Templates",
+    "pages/Help",
+    "pages/Learning",
+    "pages/Changelog"
   ]
 }

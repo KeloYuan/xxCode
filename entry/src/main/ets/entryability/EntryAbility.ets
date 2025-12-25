@@ -2,6 +2,8 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
+import { preferences } from '@kit.ArkData';
+import { common } from '@kit.AbilityKit';
 
 const DOMAIN = 0x0000;
 
@@ -12,6 +14,7 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
+    
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
   }
 
@@ -23,16 +26,47 @@ export default class EntryAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    windowStage.loadContent('pages/Agreement', (err) => {
-      if (err.code) {
-        hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
-        return;
-      }
-      hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
+    // 确定启动页面（使用 Promise 链式调用，因为 onWindowStageCreate 不能是 async）
+    this.determineStartPage().then((startPage: string) => {
+      hilog.info(DOMAIN, 'testTag', `Starting page: ${startPage}`);
 
-      // 配置沉浸式效果
-      this.configureImmersiveMode(windowStage);
+      windowStage.loadContent(startPage, (err: BusinessError) => {
+        if (err.code) {
+          hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', err.message || 'Unknown error');
+          return;
+        }
+        hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
+
+        // 配置沉浸式效果
+        this.configureImmersiveMode(windowStage);
+      });
     });
+  }
+
+  /**
+   * 根据用户状态确定启动页面
+   * 避免启动时的页面跳转闪烁
+   */
+  private async determineStartPage(): Promise<string> {
+    try {
+      const dataPreferences = await preferences.getPreferences(this.context, 'user_settings');
+      const agreed: boolean = await dataPreferences.get('agreement_accepted', false) as boolean;
+      const welcomed: boolean = await dataPreferences.get('welcome_shown', false) as boolean;
+
+      // 根据状态返回正确的启动页面
+      if (!agreed) {
+        return 'pages/Agreement'; // 未同意协议
+      } else if (!welcomed) {
+        return 'pages/Index'; // 已同意但未看过欢迎页
+      } else {
+        return 'pages/CodeEditor'; // 已完成引导，直接进入编辑器
+      }
+    } catch (err) {
+      const error = err as BusinessError;
+      hilog.error(DOMAIN, 'testTag', 'Failed to read preferences. Cause: %{public}s', error.message || 'Unknown error');
+      // 发生错误时，默认显示协议页
+      return 'pages/Agreement';
+    }
   }
 
   /**
@@ -51,10 +85,8 @@ export default class EntryAbility extends UIAbility {
       await mainWindow.setWindowLayoutFullScreen(true);
       hilog.info(DOMAIN, 'testTag', 'Window layout set to full-screen mode.');
 
-      // 2. 设置状态栏和导航栏透明，并设置内容颜色为白色
+      // 2. 设置状态栏和导航栏透明（颜色由页面控制）
       const systemBarProperties: window.SystemBarProperties = {
-        statusBarContentColor: '#FFFFFF',      // 状态栏文字/图标颜色（白色）
-        navigationBarContentColor: '#FFFFFF',  // 导航栏文字/图标颜色（白色）
         statusBarColor: '#00000000',           // 状态栏背景透明
         navigationBarColor: '#00000000'        // 导航栏背景透明
       };

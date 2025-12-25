@@ -1,340 +1,308 @@
 {
   "string": [
     {
-      "name": "module_desc",
-      "value": "元代码编辑器模块"
-    },
-    {
-      "name": "EntryAbility_desc",
-      "value": "元代码 - HarmonyOS代码编辑器"
-    },
-    {
-      "name": "EntryAbility_label",
-      "value": "元代码"
-    },
-    {
-      "name": "permission_reason",
-      "value": "需要访问文档权限来打开、编辑和保存代码文件"
-    },
-    {
-      "name": "permission_documents_reason",
-      "value": "需要访问文档目录来保存和管理您的代码文件，方便在文件管理器中查看和编辑"
-    },
-    {
-      "name": "permission_download_reason",
-      "value": "需要访问下载目录来保存和管理代码文件，方便您在文件管理器中查看"
-    },
-    {
-      "name": "index_page_title",
-      "value": "欢迎"
-    },
-    {
-      "name": "editor_page_title",
-      "value": "代码编辑器"
-    },
-    {
       "name": "app_name",
-      "value": "元代码"
+      "value": "MetaCode"
     },
     {
       "name": "app_slogan",
-      "value": "现代化 · 轻量级 · 高效"
+      "value": "Modern · Lightweight · Efficient"
     },
     {
       "name": "feature_fast_title",
-      "value": "极速启动"
+      "value": "Fast Launch"
     },
     {
       "name": "feature_fast_desc",
-      "value": "毫秒级启动，流畅编辑体验"
+      "value": "Millisecond startup, smooth editing"
     },
     {
       "name": "feature_highlight_title",
-      "value": "语法高亮"
+      "value": "Syntax Highlight"
     },
     {
       "name": "feature_highlight_desc",
-      "value": "支持多种编程语言高亮"
+      "value": "Multi-language syntax highlighting"
     },
     {
       "name": "feature_files_title",
-      "value": "文件管理"
+      "value": "File Manager"
     },
     {
       "name": "feature_files_desc",
-      "value": "强大的文件浏览和管理"
+      "value": "Powerful file browsing and management"
     },
     {
       "name": "feature_themes_title",
-      "value": "多主题"
+      "value": "Multi Themes"
     },
     {
       "name": "feature_themes_desc",
-      "value": "深色/浅色/Monokai/Dracula"
+      "value": "Dark/Light/Monokai/Dracula"
     },
     {
       "name": "btn_start_coding",
-      "value": "开始编码"
+      "value": "Start Coding"
     },
     {
       "name": "btn_files",
-      "value": "文件"
+      "value": "Files"
     },
     {
       "name": "btn_tabs",
-      "value": "标签"
+      "value": "Tabs"
     },
     {
       "name": "btn_hide",
-      "value": "隐藏"
+      "value": "Hide"
     },
     {
       "name": "btn_new",
-      "value": "新建"
+      "value": "New"
     },
     {
       "name": "btn_format",
-      "value": "格式化"
+      "value": "Format"
     },
     {
       "name": "btn_search",
-      "value": "搜索"
+      "value": "Search"
     },
     {
       "name": "btn_edit",
-      "value": "编辑"
+      "value": "Edit"
     },
     {
       "name": "btn_preview",
-      "value": "预览"
+      "value": "Preview"
     },
     {
       "name": "btn_theme",
-      "value": "主题"
+      "value": "Theme"
     },
     {
       "name": "btn_open",
-      "value": "打开"
+      "value": "Open"
     },
     {
       "name": "recent_projects_title",
-      "value": "最近项目"
+      "value": "Recent Projects"
     },
     {
       "name": "recent_projects_empty",
-      "value": "暂无最近文件"
+      "value": "No recent files yet"
     },
     {
       "name": "recent_projects_clear",
-      "value": "清空"
+      "value": "Clear"
     },
     {
       "name": "templates_title",
-      "value": "模板库"
+      "value": "Templates"
     },
     {
       "name": "templates_category_all",
-      "value": "全部"
+      "value": "All"
     },
     {
       "name": "templates_empty",
-      "value": "暂无模板"
+      "value": "No templates yet"
     },
     {
       "name": "templates_insert",
-      "value": "插入到编辑器"
+      "value": "Insert into Editor"
     },
     {
       "name": "help_title",
-      "value": "帮助与快捷键"
+      "value": "Help & Shortcuts"
     },
     {
       "name": "help_quick_start",
-      "value": "快速开始"
+      "value": "Quick Start"
     },
     {
       "name": "help_quick_start_1",
-      "value": "点击“打开”选择文件开始编辑"
+      "value": "Tap Open to choose a file and start editing"
     },
     {
       "name": "help_quick_start_2",
-      "value": "侧边栏可新建、重命名、删除文件"
+      "value": "Use sidebar to create, rename, or delete files"
     },
     {
       "name": "help_quick_start_3",
-      "value": "模板库可一键插入代码片段"
+      "value": "Insert snippets quickly from Templates"
     },
     {
       "name": "help_shortcuts",
-      "value": "快捷键"
+      "value": "Shortcuts"
     },
     {
       "name": "help_shortcut_save",
-      "value": "保存"
+      "value": "Save"
     },
     {
       "name": "help_shortcut_search",
-      "value": "查找"
+      "value": "Find"
     },
     {
       "name": "help_shortcut_format",
-      "value": "格式化"
+      "value": "Format"
     },
     {
       "name": "help_gestures",
-      "value": "手势"
+      "value": "Gestures"
     },
     {
       "name": "help_gesture_left",
-      "value": "左侧边缘向右滑动：打开文件列表"
+      "value": "Swipe from left edge to open files list"
     },
     {
       "name": "help_gesture_right",
-      "value": "右侧边缘向左滑动：打开功能菜单"
+      "value": "Swipe from right edge to open tools menu"
     },
     {
       "name": "help_tips",
-      "value": "使用提示"
+      "value": "Tips"
     },
     {
       "name": "help_tip_1",
-      "value": "切换到预览模式可查看语法高亮"
+      "value": "Preview mode shows syntax highlighting"
     },
     {
       "name": "help_tip_2",
-      "value": "主题与外观可调节字体与行号显示"
+      "value": "Theme settings control font and line numbers"
     },
     {
       "name": "help_tip_3",
-      "value": "最近项目页可快速打开历史文件"
+      "value": "Recent projects opens files quickly"
     },
     {
       "name": "learning_title",
-      "value": "学习模式"
+      "value": "Learning Mode"
     },
     {
       "name": "learning_intro",
-      "value": "选择一个样本文件开始学习："
+      "value": "Pick a sample file to start learning:"
     },
     {
       "name": "learning_open",
-      "value": "打开"
+      "value": "Open"
     },
     {
       "name": "changelog_title",
-      "value": "更新日志"
+      "value": "Changelog"
     },
     {
       "name": "btn_import",
-      "value": "导入"
+      "value": "Import"
     },
     {
       "name": "btn_save",
-      "value": "保存"
+      "value": "Save"
     },
     {
       "name": "btn_export",
-      "value": "导出"
+      "value": "Export"
     },
     {
       "name": "btn_settings",
-      "value": "设置"
+      "value": "Settings"
     },
     {
       "name": "btn_menu",
-      "value": "菜单"
+      "value": "Menu"
     },
     {
       "name": "btn_previous",
-      "value": "上一个"
+      "value": "Previous"
     },
     {
       "name": "btn_next",
-      "value": "下一个"
+      "value": "Next"
     },
     {
       "name": "btn_replace",
-      "value": "替换"
+      "value": "Replace"
     },
     {
       "name": "btn_all",
-      "value": "全部"
+      "value": "All"
     },
     {
       "name": "btn_close",
-      "value": "关闭"
+      "value": "Close"
     },
     {
       "name": "placeholder_search",
-      "value": "搜索..."
+      "value": "Search..."
     },
     {
       "name": "placeholder_replace",
-      "value": "替换为..."
+      "value": "Replace with..."
     },
     {
       "name": "placeholder_code",
-      "value": "在此输入代码..."
+      "value": "Enter code here..."
     },
     {
       "name": "text_no_files",
-      "value": "暂无文件"
+      "value": "No files"
     },
     {
       "name": "text_no_tabs",
-      "value": "无打开文件"
+      "value": "No open files"
     },
     {
       "name": "text_workspace",
-      "value": "应用工作区"
+      "value": "App Workspace"
     },
     {
       "name": "settings_title",
-      "value": "设置"
+      "value": "Settings"
     },
     {
       "name": "settings_back",
-      "value": "返回"
+      "value": "Back"
     },
     {
       "name": "settings_editor",
-      "value": "编辑器"
+      "value": "Editor"
     },
     {
       "name": "settings_font_size",
-      "value": "字体大小"
+      "value": "Font Size"
     },
     {
       "name": "settings_line_height",
-      "value": "行高"
+      "value": "Line Height"
     },
     {
       "name": "settings_line_numbers",
-      "value": "显示行号"
+      "value": "Show Line Numbers"
     },
     {
       "name": "settings_theme",
-      "value": "主题与外观"
+      "value": "Theme & Appearance"
     },
     {
       "name": "settings_theme_apply",
-      "value": "应用"
+      "value": "Apply"
     },
     {
       "name": "settings_theme_active",
-      "value": "已启用"
+      "value": "Active"
     },
     {
       "name": "settings_preview",
-      "value": "预览：Hello World 你好世界"
+      "value": "Preview: Hello World"
     },
     {
       "name": "settings_language",
-      "value": "语言"
+      "value": "Language"
     },
     {
       "name": "settings_language_auto",
-      "value": "跟随系统"
+      "value": "Follow System"
     },
     {
       "name": "settings_language_zh",
@@ -346,83 +314,83 @@
     },
     {
       "name": "settings_about",
-      "value": "关于"
+      "value": "About"
     },
     {
       "name": "settings_version",
-      "value": "版本"
+      "value": "Version"
     },
     {
       "name": "settings_app_name",
-      "value": "应用名称"
+      "value": "App Name"
     },
     {
       "name": "settings_developer",
-      "value": "开发者"
+      "value": "Developer"
     },
     {
       "name": "settings_feedback",
-      "value": "帮助与反馈"
+      "value": "Help & Feedback"
     },
     {
       "name": "settings_feedback_title",
-      "value": "问题反馈"
+      "value": "Feedback"
     },
     {
       "name": "settings_feedback_action",
-      "value": "发送邮件 >"
+      "value": "Send Email >"
     },
     {
       "name": "settings_rate",
-      "value": "给个好评"
+      "value": "Rate Us"
     },
     {
       "name": "settings_rate_action",
-      "value": "前往应用市场 >"
+      "value": "Go to Store >"
     },
     {
       "name": "btn_template",
-      "value": "模板"
+      "value": "Template"
     },
     {
       "name": "template_dialog_title",
-      "value": "代码模板"
+      "value": "Code Templates"
     },
     {
       "name": "template_dialog_cancel",
-      "value": "取消"
+      "value": "Cancel"
     },
     {
       "name": "menu_title",
-      "value": "功能菜单"
+      "value": "Menu"
     },
     {
       "name": "menu_edit_tools",
-      "value": "编辑工具"
+      "value": "Edit Tools"
     },
     {
       "name": "menu_file_operations",
-      "value": "文件操作"
+      "value": "File Operations"
     },
     {
       "name": "menu_app_settings",
-      "value": "应用设置"
+      "value": "App Settings"
     },
     {
       "name": "tab_manager_title",
-      "value": "打开的标签"
+      "value": "Open Tabs"
     },
     {
       "name": "btn_new_tab",
-      "value": "新建标签"
+      "value": "New Tab"
     },
     {
       "name": "text_lines",
-      "value": "行"
+      "value": "lines"
     },
     {
       "name": "text_modified",
-      "value": "已修改"
+      "value": "Modified"
     }
   ]
 }

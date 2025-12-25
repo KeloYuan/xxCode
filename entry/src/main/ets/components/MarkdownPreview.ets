@@ -14,6 +14,7 @@ export struct MarkdownPreview {
   
   private markdownService: MarkdownService = MarkdownService.getInstance();
   private themeService: ThemeService = ThemeService.getInstance();
+  private webController: webview.WebviewController = new webview.WebviewController();
 
   aboutToAppear() {
     this.updatePreview();
@@ -27,6 +28,12 @@ export struct MarkdownPreview {
   private updatePreview() {
     const contentHtml = this.markdownService.convertToHtml(this.markdown);
     this.html = this.wrapHtml(contentHtml);
+    // 如果 Web 组件已经加载，直接刷新内容
+    try {
+      this.webController.loadData(this.html, 'text/html', 'UTF-8');
+    } catch (error) {
+      // Web组件可能还未准备好，忽略错误
+    }
   }
 
   private wrapHtml(content: string): string {
@@ -139,11 +146,12 @@ export struct MarkdownPreview {
   build() {
     Column() {
       // 使用 Web 组件显示 HTML
-      Web({ src: 'about:blank' })
+      Web({ src: '', controller: this.webController })
         .width('100%')
         .height('100%')
-        .onPageEnd(() => {
-          // 页面加载完成后，注入 HTML 内容
+        .onControllerAttached(() => {
+          // 控制器绑定后加载数据
+          this.webController.loadData(this.html, 'text/html', 'UTF-8');
         })
     }
     .width('100%')

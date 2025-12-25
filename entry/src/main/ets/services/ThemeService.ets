@@ -51,7 +51,7 @@ export class ThemeService {
 
   private constructor() {
     this.initializeThemes();
-    this.currentTheme = this.themes.get('dark')!;
+    this.currentTheme = this.themes.get('harmony-dark')!;
   }
 
   public static getInstance(): ThemeService {
@@ -65,79 +65,151 @@ export class ThemeService {
    * 初始化内置主题
    */
   private initializeThemes(): void {
-    // 深色主题（默认）
-    const darkTheme: Theme = {
-      id: 'dark',
-      name: '深色主题',
+    // === 鸿蒙6官方深色主题(默认) ===
+    const harmonyDarkTheme: Theme = {
+      id: 'harmony-dark',
+      name: '鸿蒙深色',
       colors: {
-        background: '#1e1e1e',
-        surface: '#2d2d30',
-        primary: '#667eea',
-        secondary: '#764ba2',
-        text: '#d4d4d4',
-        textSecondary: '#cccccc',
-        border: '#3e3e42',
-        error: '#F56C6C',
-        success: '#16a34a',
-        warning: '#ffd700'
+        background: '#0D0D0D',
+        surface: '#191919',
+        primary: '#0A59F7',
+        secondary: '#0091FF',
+        text: '#E6E6E6',
+        textSecondary: '#99999D',
+        border: '#2E2E30',
+        error: '#FA2A2D',
+        success: '#45D62B',
+        warning: '#FF9500'
       },
       editor: {
-        background: '#1e1e1e',
-        lineNumber: '#858585',
-        selection: '#264f78',
-        cursor: '#528bff',
-        text: '#d4d4d4'
+        background: '#0D0D0D',
+        lineNumber: '#5C5C60',
+        selection: '#2D5DAF',
+        cursor: '#0A59F7',
+        text: '#E6E6E6'
       },
       syntax: {
-        keyword: '#C678DD',
-        string: '#98C379',
-        comment: '#5C6370',
-        number: '#D19A66',
-        function: '#61AFEF',
-        variable: '#E06C75',
-        operator: '#56B6C2',
-        type: '#E5C07B'
+        keyword: '#FC6CA3',
+        string: '#8FD17F',
+        comment: '#5C5C60',
+        number: '#D79B8C',
+        function: '#67AEFF',
+        variable: '#E6E6E6',
+        operator: '#6CECEF',
+        type: '#DABAFF'
+      }
+    };
+    this.themes.set('harmony-dark', harmonyDarkTheme);
+
+    // === 鸿蒙6官方浅色主题 ===
+    const harmonyLightTheme: Theme = {
+      id: 'harmony-light',
+      name: '鸿蒙浅色',
+      colors: {
+        background: '#F2F2F7',
+        surface: '#FFFFFF',
+        primary: '#0A59F7',
+        secondary: '#0091FF',
+        text: '#1A1A1A',
+        textSecondary: '#6D6D72',
+        border: '#D1D1D6',
+        error: '#FA2A2D',
+        success: '#1EC050',
+        warning: '#FF9500'
+      },
+      editor: {
+        background: '#FFFFFF',
+        lineNumber: '#8E8E93',
+        selection: '#B3D7FF',
+        cursor: '#0A59F7',
+        text: '#1A1A1A'
+      },
+      syntax: {
+        keyword: '#AD3DA4',
+        string: '#1E8F4D',
+        comment: '#6D6D72',
+        number: '#C94E23',
+        function: '#0E5EBE',
+        variable: '#1A1A1A',
+        operator: '#0083BC',
+        type: '#5D37AF'
+      }
+    };
+    this.themes.set('harmony-light', harmonyLightTheme);
+
+    // === 优化后的深色主题 ===
+    const darkTheme: Theme = {
+      id: 'dark',
+      name: '经典深色',
+      colors: {
+        background: '#1A1A1A',
+        surface: '#252526',
+        primary: '#5B8FF9',
+        secondary: '#7C3AED',
+        text: '#E8E8E8',
+        textSecondary: '#A0A0A0',
+        border: '#3E3E42',
+        error: '#FF6B6B',
+        success: '#51CF66',
+        warning: '#FFD43B'
+      },
+      editor: {
+        background: '#1E1E1E',
+        lineNumber: '#7A7A7A',
+        selection: '#3A3D41',
+        cursor: '#5B8FF9',
+        text: '#D4D4D4'
+      },
+      syntax: {
+        keyword: '#C792EA',
+        string: '#99C794',
+        comment: '#676E95',
+        number: '#F78C6C',
+        function: '#82AAFF',
+        variable: '#C5C8C6',
+        operator: '#89DDFF',
+        type: '#FFCB6B'
       }
     };
     this.themes.set('dark', darkTheme);
 
-    // 浅色主题
+    // === 优化后的浅色主题 ===
     const lightTheme: Theme = {
       id: 'light',
-      name: '浅色主题',
+      name: '经典浅色',
       colors: {
-        background: '#FFFFFF',
-        surface: '#F5F5F5',
-        primary: '#667eea',
-        secondary: '#764ba2',
-        text: '#333333',
-        textSecondary: '#666666',
-        border: '#E0E0E0',
-        error: '#F56C6C',
-        success: '#16a34a',
-        warning: '#ffd700'
+        background: '#FAFAFA',
+        surface: '#FFFFFF',
+        primary: '#3B82F6',
+        secondary: '#8B5CF6',
+        text: '#1F2937',
+        textSecondary: '#6B7280',
+        border: '#E5E7EB',
+        error: '#EF4444',
+        success: '#10B981',
+        warning: '#F59E0B'
       },
       editor: {
         background: '#FFFFFF',
-        lineNumber: '#999999',
-        selection: '#ADD6FF',
-        cursor: '#528bff',
-        text: '#333333'
+        lineNumber: '#9CA3AF',
+        selection: '#DBEAFE',
+        cursor: '#3B82F6',
+        text: '#1F2937'
       },
       syntax: {
-        keyword: '#0000FF',
-        string: '#A31515',
-        comment: '#008000',
-        number: '#098658',
-        function: '#795E26',
-        variable: '#001080',
-        operator: '#000000',
-        type: '#267F99'
+        keyword: '#9333EA',
+        string: '#059669',
+        comment: '#9CA3AF',
+        number: '#EA580C',
+        function: '#2563EB',
+        variable: '#374151',
+        operator: '#0891B2',
+        type: '#7C3AED'
       }
     };
     this.themes.set('light', lightTheme);
 
-    // Monokai 主题
+    // === Monokai 主题（微调）===
     const monokaiTheme: Theme = {
       id: 'monokai',
       name: 'Monokai',
@@ -147,11 +219,11 @@ export class ThemeService {
         primary: '#F92672',
         secondary: '#66D9EF',
         text: '#F8F8F2',
-        textSecondary: '#F8F8F2',
+        textSecondary: '#E6DB74',
         border: '#49483E',
         error: '#F92672',
         success: '#A6E22E',
-        warning: '#E6DB74'
+        warning: '#FD971F'
       },
       editor: {
         background: '#272822',
@@ -173,21 +245,21 @@ export class ThemeService {
     };
     this.themes.set('monokai', monokaiTheme);
 
-    // Dracula 主题
+    // === Dracula 主题（优化对比度）===
     const draculaTheme: Theme = {
       id: 'dracula',
       name: 'Dracula',
       colors: {
         background: '#282A36',
-        surface: '#44475A',
+        surface: '#343746',
         primary: '#BD93F9',
         secondary: '#FF79C6',
         text: '#F8F8F2',
-        textSecondary: '#F8F8F2',
-        border: '#6272A4',
+        textSecondary: '#BFBFBF',
+        border: '#44475A',
         error: '#FF5555',
         success: '#50FA7B',
-        warning: '#F1FA8C'
+        warning: '#FFB86C'
       },
       editor: {
         background: '#282A36',
