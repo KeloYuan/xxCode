@@ -27,6 +27,7 @@ import { BottomSheet } from '../components/BottomSheet';
 import { TabManagerPanel } from '../components/TabManagerPanel';
 import { ConsolePanel } from '../components/ConsolePanel';
 import { LetterDialog } from '../components/LetterDialog';
+import { ResponsiveLayout, EditorState, EditorCallbacks } from '../components/layouts/ResponsiveLayout';
 import { promptAction } from '@kit.ArkUI';
 import webview from '@ohos.web.webview';
 
@@ -111,6 +112,9 @@ struct CodeEditor {
   // 键盘状态
   @State isCtrlPressed: boolean = false;
   @State isAltPressed: boolean = false;
+
+  // 用于强制刷新布局的计数器
+  @State layoutRefreshCounter: number = 0;
   
   // 动画曲线
   private springCurve: ICurve = curves.springMotion(0.6, 0.8);
@@ -780,378 +784,203 @@ struct CodeEditor {
     this.saveCurrentTabState();
   }
 
-  /**
-   * 获取代码行数组
-   */
-  private getCodeLines(): string[] {
-    return this.content.split('\n');
-  }
+  private buildEditorState(): EditorState {
+    return {
+      // 多标签状态
+      tabs: this.tabs,
+      currentTabId: this.currentTabId,
+      showFileBrowser: this.showFileBrowser,
+      sidebarWidth: this.sidebarWidth,
+      internalFiles: this.internalFiles,
+      workspacePath: this.workspacePath,
 
-  /**
-   * 获取 token 对应的颜色
-   */
-  private getTokenColor(type: string): string {
-    const colorMap: Record<string, string> = {
-      'keyword': this.currentTheme.syntax.keyword,
-      'string': this.currentTheme.syntax.string,
-      'comment': this.currentTheme.syntax.comment,
-      'number': this.currentTheme.syntax.number,
-      'function': this.currentTheme.syntax.function,
-      'variable': this.currentTheme.syntax.variable,
-      'operator': this.currentTheme.syntax.operator,
-      'bracket': this.currentTheme.editor.text,
-      'type': this.currentTheme.syntax.type,
-      'text': this.currentTheme.editor.text
+      // 移动端状态
+      showLeftDrawer: this.showLeftDrawer,
+      showRightDrawer: this.showRightDrawer,
+      showTabManager: this.showTabManager,
+
+      // 运行控制台状态
+      showConsole: this.showConsole,
+      consoleLogs: this.consoleLogs,
+
+      // 编辑器状态
+      content: this.content,
+      fileName: this.fileName,
+      isModified: this.isModified,
+      language: this.language,
+      lineCount: this.lineCount,
+      filePath: this.filePath,
+
+      // UI 状态
+      currentTheme: this.currentTheme,
+      showSearchBar: this.showSearchBar,
+      searchText: this.searchText,
+      replaceText: this.replaceText,
+      searchResults: this.searchResults,
+      currentSearchIndex: this.currentSearchIndex,
+      isPreviewMode: this.isPreviewMode,
+      fontSize: this.fontSize,
+      lineHeight: this.lineHeight,
+      showLineNumbers: this.showLineNumbers,
+      editorScale: this.editorScale,
+
+      // 避让区高度
+      topRectHeight: this.topRectHeight,
+      bottomRectHeight: this.bottomRectHeight,
+
+      // Web控制器
+      webController: this.webController
     };
-    return colorMap[type] || this.currentTheme.editor.text;
   }
 
-  /**
-   * 生成行号数组
-   */
-  private getLineNumbers(): number[] {
-    const lines: number[] = [];
-    for (let i = 1; i <= this.lineCount; i++) {
-      lines.push(i);
-    }
-    return lines;
-  }
+  private buildEditorCallbacks(): EditorCallbacks {
+    return {
+      // 文件操作
+      onFileClick: (file: FileItem): void => {
+        this.openInternalFile(file);
+      },
+      onNewFile: (): void => {
+        this.createInternalFile();
+      },
+      onRenameFile: (file: FileItem): void => {
+        this.renameInternalFile(file);
+      },
+      onDeleteFile: (file: FileItem): void => {
+        this.deleteInternalFile(file);
+      },
 
-  /**
-   * 获取每行的缩进级别（以2个空格为一级）
-   */
-  private getLineIndentLevels(): number[] {
-    const lines = this.content.split('\n');
-    const indentLevels: number[] = [];
-    
-    for (const line of lines) {
-      let spaces = 0;
-      for (const char of line) {
-        if (char === ' ') {
-          spaces++;
-        } else if (char === '\t') {
-          spaces += 2; // tab 算 2 个空格
-        } else {
-          break;
-        }
+      // 标签操作
+      onTabClick: (tabId: string): void => {
+        this.switchToTab(tabId);
+      },
+      onTabClose: (tabId: string): void => {
+        this.closeTab(tabId);
+      },
+      onNewTab: (): void => {
+        this.createNewTab();
+      },
+
+      // 工具栏操作
+      onToggleFileBrowser: (): void => {
+        this.toggleFileBrowser();
+      },
+      onOpenSettings: (): void => {
+        this.openSettings();
+      },
+      onRunCode: (): void => {
+        this.runCode();
+      },
+      onFormatCode: (): void => {
+        this.formatCode();
+      },
+      onToggleSearchBar: (): void => {
+        this.getUIContext().animateTo({
+          duration: 250,
+          curve: Curve.EaseInOut
+        }, () => {
+          this.showSearchBar = !this.showSearchBar;
+        });
+      },
+      onTogglePreviewMode: (): void => {
+        this.getUIContext().animateTo({
+          duration: 300,
+          curve: this.springCurve
+        }, () => {
+          this.isPreviewMode = !this.isPreviewMode;
+          this.editorScale = this.isPreviewMode ? 0.98 : 1;
+        });
+        setTimeout(() => {
+          this.getUIContext().animateTo({ duration: 200 }, () => {
+            this.editorScale = 1;
+          });
+        }, 100);
+      },
+      onOpenTemplateDialog: (): void => {
+        this.openTemplateDialog();
+      },
+      onSaveFile: (): void => {
+        this.saveFile();
+      },
+      onOpenFile: (): void => {
+        this.openFile();
+      },
+      onImportFile: (): void => {
+        this.importFileToWorkspace();
+      },
+      onExportFile: (): void => {
+        this.saveFileAs();
+      },
+
+      // 搜索操作
+      onSearchChange: (value: string): void => {
+        this.searchText = value;
+      },
+      onReplaceChange: (value: string): void => {
+        this.replaceText = value;
+      },
+      onPerformSearch: (): void => {
+        this.performSearch();
+      },
+      onNextSearch: (): void => {
+        this.nextSearchResult();
+      },
+      onPrevSearch: (): void => {
+        this.prevSearchResult();
+      },
+      onReplaceCurrent: (): void => {
+        this.replaceCurrent();
+      },
+      onReplaceAll: (): void => {
+        this.replaceAll();
+      },
+      onCloseSearchBar: (): void => {
+        this.showSearchBar = false;
+        this.searchResults = [];
+      },
+
+      // 编辑器操作
+      onContentChange: (content: string): void => {
+        this.onContentChange(content);
+      },
+
+      // 控制台操作
+      onCloseConsole: (): void => {
+        this.showConsole = false;
+      },
+      onClearConsole: (): void => {
+        this.consoleLogs = [];
+      },
+
+      // 移动端抽屉操作
+      onToggleLeftDrawer: (show: boolean): void => {
+        this.showLeftDrawer = show;
+      },
+      onToggleRightDrawer: (show: boolean): void => {
+        this.showRightDrawer = show;
+      },
+      onToggleTabManager: (show: boolean): void => {
+        this.showTabManager = show;
+      },
+
+      // 菜单操作
+      onMenuAction: (action: string): void => {
+        this.handleMenuAction(action);
       }
-      // 每 2 个空格算一级缩进
-      indentLevels.push(Math.floor(spaces / 2));
-    }
-    
-    return indentLevels;
-  }
-
-  /**
-   * 获取最大缩进级别
-   */
-  private getMaxIndentLevel(): number {
-    const levels = this.getLineIndentLevels();
-    return Math.max(...levels, 0);
-  }
-
-  private getEdgeOverlayTop(): number {
-    return this.showSearchBar ? 160 : 120;
-  }
-
-  private getEdgeOverlayHeight(): string {
-    return '60%';
+    };
   }
 
   build() {
+    // 使用响应式布局 - 使用 key 强制重新渲染
     Stack() {
-      // 主内容
-      Column() {
-        // 状态栏占位区域
-        Row()
-          .width('100%')
-          .height(this.topRectHeight > 0 ? this.topRectHeight / 3 : 0)
-          .backgroundColor(this.currentTheme.colors.surface)
-
-        // 顶部工具栏（根据模式切换，带动画）
-        if (this.isMobileMode) {
-          Column() {
-            this.buildMobileToolbar()
-          }
-          .transition(TransitionEffect.OPACITY.animation({ duration: 300, curve: Curve.EaseInOut })
-            .combine(TransitionEffect.translate({ y: -20 })))
-        } else {
-          Column() {
-            this.buildToolbar()
-          }
-          .transition(TransitionEffect.OPACITY.animation({ duration: 300, curve: Curve.EaseInOut })
-            .combine(TransitionEffect.translate({ y: -20 })))
-        }
-
-        // 主内容区域
-        Row() {
-          // 文件浏览器侧边栏（桌面端显示，移动端隐藏）
-          if (!this.isMobileMode) {
-            FileBrowser({
-              files: this.internalFiles,
-              currentFilePath: this.filePath,
-              workspacePath: this.workspacePath || $r('app.string.text_workspace'),
-              bgColor: this.currentTheme.colors.surface,
-              textColor: this.currentTheme.colors.text,
-              fileBorderColor: this.currentTheme.colors.border,
-              activeFileBgColor: this.currentTheme.editor.background,
-              onFileClick: (file: FileItem) => {
-                this.openInternalFile(file);
-              },
-              onNewFile: () => {
-                this.createInternalFile();
-              },
-              onRenameFile: (file: FileItem) => {
-                this.renameInternalFile(file);
-              },
-              onDeleteFile: (file: FileItem) => {
-                this.deleteInternalFile(file);
-              }
-            })
-              .width(this.sidebarWidth)
-              .height('100%')
-              .opacity(this.sidebarWidth > 0 ? 1 : 0)
-              .clip(true)
-              .transition(TransitionEffect.asymmetric(
-                TransitionEffect.OPACITY.animation({ duration: 300, curve: Curve.EaseInOut })
-                  .combine(TransitionEffect.translate({ x: -50 })),
-                TransitionEffect.OPACITY.animation({ duration: 300, curve: Curve.EaseInOut })
-                  .combine(TransitionEffect.translate({ x: -50 }))
-              ))
-          }
-
-          // 编辑区域
-          Column() {
-            // 标签栏（桌面端显示，移动端隐藏）
-            if (!this.isMobileMode) {
-              Row() {
-                TabBar({
-                  tabs: this.tabs,
-                  currentTabId: this.currentTabId,
-                  bgColor: this.currentTheme.colors.surface,
-                  textColor: this.currentTheme.colors.text,
-                  tabBorderColor: this.currentTheme.colors.border,
-                  activeTabBgColor: this.currentTheme.colors.primary,
-                  onTabClick: (tabId: string) => {
-                    this.switchToTab(tabId);
-                  },
-                  onTabClose: (tabId: string) => {
-                    this.closeTab(tabId);
-                  }
-                })
-              }
-              .width('100%')
-              .justifyContent(FlexAlign.Start)
-              .alignItems(VerticalAlign.Top)
-              .transition(TransitionEffect.OPACITY.animation({ duration: 300, curve: Curve.EaseInOut })
-                .combine(TransitionEffect.translate({ y: -10 })))
-            }
-            
-            // 文件信息栏
-            this.buildFileInfoBar()
-            
-            // 搜索替换栏
-            if (this.showSearchBar) {
-              this.buildSearchBar()
-            }
-            
-            // 编辑器主体
-            this.buildEditor()
-
-            // 移动端操作栏
-            if (this.isMobileMode) {
-              this.buildMobileActionBar()
-            }
-
-            // 控制台面板
-            ConsolePanel({
-              visible: this.showConsole,
-              logs: this.consoleLogs,
-              panelHeight: 300,
-              onClose: () => {
-                this.showConsole = false;
-              },
-              onClear: () => {
-                this.consoleLogs = [];
-              }
-            })
-
-            // 隐藏的 Web 组件用于运行代码
-            Web({ src: 'about:blank', controller: this.webController })
-              .width(0)
-              .height(0)
-              .visibility(Visibility.Visible) // 必须可见才能运行JS，通过宽高0隐藏
-              .onConsole((event) => {
-                if (event) {
-                  const msg = event.message.getMessage();
-                  const level = event.message.getMessageLevel();
-                  let prefix = '[Log] ';
-                  if (level === 4) prefix = '[Error] '; // 4: ERROR
-                  if (level === 3) prefix = '[Warn] ';  // 3: WARNING
-                  
-                  this.consoleLogs.push(prefix + msg);
-                  // 自动滚动到底部
-                  return true;
-                }
-                return false;
-              })
-          }
-          .layoutWeight(1)
-          .backgroundColor(this.currentTheme.editor.background)
-          .scale({ x: this.editorScale, y: this.editorScale })
-        }
-        .alignItems(VerticalAlign.Top)
-        .layoutWeight(1)
-        .width('100%')
-
-        // 底部导航栏占位区域
-        Row()
-          .width('100%')
-          .height(this.bottomRectHeight > 0 ? this.bottomRectHeight / 3 : 0)
-          .backgroundColor(this.currentTheme.editor.background)
-      }
-      .width('100%')
-      .height('100%')
-      .backgroundColor(this.currentTheme.colors.background)
-      
-      // 左侧抽屉（文件浏览器）- 仅移动端显示
-      if (this.isMobileMode) {
-        DrawerPanel({
-          visible: this.showLeftDrawer,
-          drawerPosition: 'left',
-          drawerWidth: this.breakpointService.getDrawerWidth(),
-          bgColor: this.currentTheme.colors.surface,
-          onClose: () => {
-            console.info('Left drawer closed');
-            this.showLeftDrawer = false;
-          }
-        }) {
-          Column() {
-            FileBrowser({
-              files: this.internalFiles,
-              currentFilePath: this.filePath,
-              workspacePath: this.workspacePath || $r('app.string.text_workspace'),
-              bgColor: this.currentTheme.colors.surface,
-              textColor: this.currentTheme.colors.text,
-              fileBorderColor: this.currentTheme.colors.border,
-              activeFileBgColor: this.currentTheme.editor.background,
-              onFileClick: (file: FileItem) => {
-                this.openInternalFile(file);
-                this.showLeftDrawer = false; // 点击文件后自动关闭抽屉
-              },
-              onNewFile: () => {
-                this.createInternalFile();
-              },
-              onRenameFile: (file: FileItem) => {
-                this.renameInternalFile(file);
-              },
-              onDeleteFile: (file: FileItem) => {
-                this.deleteInternalFile(file);
-              }
-            })
-          }
-          .padding({ top: this.topRectHeight })
-        }
-      }
-      
-      // 右侧抽屉（功能菜单）- 仅移动端显示
-      if (this.isMobileMode) {
-        DrawerPanel({
-          visible: this.showRightDrawer,
-          drawerPosition: 'right',
-          drawerWidth: this.breakpointService.getDrawerWidth(),
-          bgColor: this.currentTheme.colors.surface,
-          onClose: () => {
-            this.showRightDrawer = false;
-          }
-        }) {
-          Column() {
-            MobileMenu({
-              bgColor: this.currentTheme.colors.surface,
-              textColor: this.currentTheme.colors.text,
-              onMenuClick: (action: string) => {
-                this.handleMenuAction(action);
-                this.showRightDrawer = false;
-              }
-            })
-          }
-          .padding({ top: this.topRectHeight })
-        }
-      }
-      
-      // 底部面板（标签管理）- 仅移动端显示
-      if (this.isMobileMode) {
-        BottomSheet({
-          visible: this.showTabManager,
-          sheetHeight: '60%',
-          bgColor: this.currentTheme.colors.surface,
-          onClose: () => {
-            this.showTabManager = false;
-          }
-        }) {
-          TabManagerPanel({
-            tabs: this.tabs,
-            currentTabId: this.currentTabId,
-            bgColor: this.currentTheme.colors.surface,
-            textColor: this.currentTheme.colors.text,
-            onTabClick: (tabId: string) => {
-              this.switchToTab(tabId);
-              this.showTabManager = false;
-            },
-            onTabClose: (tabId: string) => {
-              this.closeTab(tabId);
-            },
-            onNewTab: () => {
-              this.createNewTab();
-              this.showTabManager = false;
-            }
-          })
-        }
-      }
-      
-      // 左边缘手势检测区域 - 仅移动端显示且抽屉未打开时
-      // 限制高度，不覆盖工具栏区域（顶部约 100vp）
-      if (this.isMobileMode && !this.showLeftDrawer && !this.showTabManager) {
-        Row()
-          .width(28)
-          .height(this.getEdgeOverlayHeight())
-          .position({ x: 0, y: this.getEdgeOverlayTop() }) // 从工具栏下方开始
-          .backgroundColor('rgba(0, 0, 0, 0)')
-          .gesture(
-            PanGesture({ direction: PanDirection.Horizontal })
-              .onActionStart((event: GestureEvent) => {
-                console.info('Left edge gesture detected, offsetX:', event?.offsetX);
-                if (event && event.offsetX > 50) {
-                  this.showLeftDrawer = true;
-                }
-              })
-          )
-      }
-
-      // 右边缘手势检测区域 - 仅移动端显示且抽屉未打开时
-      // 限制高度，不覆盖工具栏区域（顶部约 100vp）
-      if (this.isMobileMode && !this.showRightDrawer && !this.showTabManager) {
-        Row()
-          .width(28)
-          .height(this.getEdgeOverlayHeight())
-          .position({ x: '100%', y: this.getEdgeOverlayTop() }) // 从工具栏下方开始
-          .markAnchor({ x: 28, y: 0 })
-          .backgroundColor('rgba(0, 0, 0, 0)')
-          .gesture(
-            PanGesture({ direction: PanDirection.Horizontal })
-              .onActionStart((event: GestureEvent) => {
-                console.info('Right edge gesture detected, offsetX:', event?.offsetX);
-                if (event && event.offsetX < -50) {
-                  this.showRightDrawer = true;
-                }
-              })
-          )
-      }
+      ResponsiveLayout({
+        breakpointService: this.breakpointService,
+        callbacks: this.buildEditorCallbacks(),
+        state: this.buildEditorState()
+      })
+      .key(`layout_${this.layoutRefreshCounter}_${this.isMobileMode}`)
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.currentTheme.colors.background)
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .onKeyEvent((event: KeyEvent) => {
       // 更新修饰键状态
       if (event.keyCode === 2072 || event.keyCode === 2073) { // Ctrl
@@ -1169,9 +998,9 @@ struct CodeEditor {
         }
         // Ctrl + F : 搜索
         if (event.keyCode === 2034 && this.isCtrlPressed) {
-           this.getUIContext().animateTo({ 
-            duration: 250, 
-            curve: Curve.EaseInOut 
+          this.getUIContext().animateTo({
+            duration: 250,
+            curve: Curve.EaseInOut
           }, () => {
             this.showSearchBar = true;
           });
@@ -1184,725 +1013,6 @@ struct CodeEditor {
         }
       }
     })
-  }
-
-  @Builder
-  buildToolbar(): void {
-    Row() {
-      // 左侧：标题和状态
-      Column() {
-        Row({ space: 8 }) {
-          // 文件扩展名徽章
-          Text(`.${this.getFileExtensionBadge()}`)
-            .fontSize(11)
-            .fontColor(this.currentTheme.colors.primary)
-            .fontWeight(FontWeight.Medium)
-            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-            .backgroundColor(`${this.currentTheme.colors.primary}15`)
-            .borderRadius(4)
-            .border({
-              width: 0.5,
-              color: this.currentTheme.colors.primary
-            })
-
-          Text(this.fileName + (this.isModified ? ' •' : ''))
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.currentTheme.colors.text)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      // 右侧：操作按钮组 - 纯文字设计
-      Scroll() {
-        Row({ space: 6 }) {
-          // 文件浏览器切换
-          IconButton({
-            text: this.showFileBrowser ? $r('app.string.btn_hide') : $r('app.string.btn_files'),
-            isActive: this.showFileBrowser,
-            bgColor: this.currentTheme.colors.surface,
-            activeColor: this.currentTheme.colors.primary,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.toggleFileBrowser();
-            }
-          })
-          
-          // 新建标签
-          IconButton({
-            text: $r('app.string.btn_new'),
-            bgColor: this.currentTheme.colors.surface,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.createNewTab();
-            }
-          })
-          
-          // 插入模板按钮
-          IconButton({
-            text: $r('app.string.btn_template'),
-            bgColor: this.currentTheme.colors.surface,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.openTemplateDialog();
-            }
-          })
-          
-          // 格式化按钮
-          IconButton({
-            text: $r('app.string.btn_format'),
-            bgColor: this.currentTheme.colors.surface,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.formatCode();
-            }
-          })
-          
-          // 搜索按钮
-          IconButton({
-            text: $r('app.string.btn_search'),
-            isActive: this.showSearchBar,
-            bgColor: this.currentTheme.colors.surface,
-            activeColor: this.currentTheme.colors.primary,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.getUIContext().animateTo({ 
-                duration: 250, 
-                curve: Curve.EaseInOut 
-              }, () => {
-                this.showSearchBar = !this.showSearchBar;
-              });
-            }
-          })
-          
-          // 编辑/预览切换
-          IconButton({
-            text: this.isPreviewMode ? $r('app.string.btn_edit') : $r('app.string.btn_preview'),
-            isActive: this.isPreviewMode,
-            bgColor: this.currentTheme.colors.surface,
-            activeColor: this.currentTheme.colors.primary,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.getUIContext().animateTo({ 
-                duration: 300, 
-                curve: this.springCurve 
-              }, () => {
-                this.isPreviewMode = !this.isPreviewMode;
-                this.editorScale = this.isPreviewMode ? 0.98 : 1;
-              });
-              setTimeout(() => {
-                this.getUIContext().animateTo({ duration: 200 }, () => {
-                  this.editorScale = 1;
-                });
-              }, 100);
-            }
-          })
-
-          // 打开外部文件
-          IconButton({
-            text: $r('app.string.btn_open'),
-            bgColor: this.currentTheme.colors.surface,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.openFile();
-            }
-          })
-
-          // 导入到工作区（复制外部文件到内部 codes 目录并打开）
-          IconButton({
-            text: $r('app.string.btn_import'),
-            bgColor: this.currentTheme.colors.surface,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.importFileToWorkspace();
-            }
-          })
-
-          // 保存文件 - 突出显示
-          IconButton({
-            text: $r('app.string.btn_save'),
-            isActive: this.isModified,
-            bgColor: this.currentTheme.colors.surface,
-            activeColor: this.currentTheme.colors.primary,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.saveFile();
-            }
-          })
-
-          // 导出副本（另存为）
-          IconButton({
-            text: $r('app.string.btn_export'),
-            bgColor: this.currentTheme.colors.surface,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.saveFileAs();
-            }
-          })
-          
-          // 设置按钮
-          IconButton({
-            text: $r('app.string.btn_settings'),
-            bgColor: this.currentTheme.colors.surface,
-            textColor: this.currentTheme.colors.text,
-            btnSize: 40,
-            fontSize: 14,
-            onButtonClick: () => {
-              this.openSettings();
-            }
-          })
-        }
-      }
-      .scrollable(ScrollDirection.Horizontal)
-      .scrollBar(BarState.Off)
-    }
-    .width('100%')
-    .height(60)
-    .padding({ left: 16, right: 16 })
-    .backgroundColor(this.currentTheme.colors.surface)
-    .border({ width: { bottom: 0.5 }, color: this.currentTheme.colors.border })
-    .shadow({
-      radius: 8,
-      color: 'rgba(0, 0, 0, 0.08)',
-      offsetX: 0,
-      offsetY: 2
-    })
-  }
-  
-  /**
-   * 移动端工具栏 - 简洁高可点
-   */
-  @Builder
-  buildMobileToolbar(): void {
-    Row({ space: 8 }) {
-      Button($r('app.string.btn_files'))
-        .height(44)
-        .padding({ left: 12, right: 12 })
-        .fontSize(14)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.currentTheme.colors.text)
-        .backgroundColor(this.currentTheme.editor.background)
-        .borderRadius(10)
-        .border({ width: 1, color: this.currentTheme.colors.border })
-        .onClick(() => {
-          this.showLeftDrawer = true;
-        })
-
-      Text(this.fileName + (this.isModified ? ' •' : ''))
-        .fontSize(15)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.currentTheme.colors.text)
-        .layoutWeight(1)
-        .textAlign(TextAlign.Center)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .onClick(() => {
-          this.showTabManager = true;
-        })
-
-      Button('...')
-        .height(44)
-        .padding({ left: 12, right: 12 })
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.currentTheme.colors.text)
-        .backgroundColor(this.currentTheme.editor.background)
-        .borderRadius(10)
-        .border({ width: 1, color: this.currentTheme.colors.border })
-        .onClick(() => {
-          this.showRightDrawer = true;
-        })
-    }
-    .width('100%')
-    .height(56)
-    .padding({ left: 8, right: 8 })
-    .backgroundColor(this.currentTheme.colors.surface)
-    .border({ width: { bottom: 0.5 }, color: this.currentTheme.colors.border })
-  }
-
-  /**
-   * 移动端底部操作栏 - 大按钮，避免误触
-   */
-  @Builder
-  buildMobileActionBar(): void {
-    Scroll() {
-      Row({ space: 8 }) {
-        IconButton({
-          text: $r('app.string.btn_files'),
-          isActive: this.showLeftDrawer,
-          bgColor: this.currentTheme.colors.surface,
-          activeColor: this.currentTheme.colors.primary,
-          textColor: this.currentTheme.colors.text,
-          btnSize: 48,
-          fontSize: 12,
-          onButtonClick: () => {
-            this.showLeftDrawer = true;
-          }
-        })
-        IconButton({
-          text: $r('app.string.btn_tabs'),
-          isActive: this.showTabManager,
-          bgColor: this.currentTheme.colors.surface,
-          activeColor: this.currentTheme.colors.primary,
-          textColor: this.currentTheme.colors.text,
-          btnSize: 48,
-          fontSize: 12,
-          onButtonClick: () => {
-            this.showTabManager = true;
-          }
-        })
-        IconButton({
-          text: $r('app.string.btn_search'),
-          isActive: this.showSearchBar,
-          bgColor: this.currentTheme.colors.surface,
-          activeColor: this.currentTheme.colors.primary,
-          textColor: this.currentTheme.colors.text,
-          btnSize: 48,
-          fontSize: 12,
-          onButtonClick: () => {
-            this.getUIContext().animateTo({ duration: 250, curve: Curve.EaseInOut }, () => {
-              this.showSearchBar = !this.showSearchBar;
-            });
-          }
-        })
-        IconButton({
-          text: this.isPreviewMode ? $r('app.string.btn_edit') : $r('app.string.btn_preview'),
-          isActive: this.isPreviewMode,
-          bgColor: this.currentTheme.colors.surface,
-          activeColor: this.currentTheme.colors.primary,
-          textColor: this.currentTheme.colors.text,
-          btnSize: 48,
-          fontSize: 12,
-          onButtonClick: () => {
-            this.getUIContext().animateTo({ duration: 300, curve: this.springCurve }, () => {
-              this.isPreviewMode = !this.isPreviewMode;
-              this.editorScale = this.isPreviewMode ? 0.98 : 1;
-            });
-            setTimeout(() => {
-              this.getUIContext().animateTo({ duration: 200 }, () => {
-                this.editorScale = 1;
-              });
-            }, 100);
-          }
-        })
-        IconButton({
-          text: $r('app.string.btn_save'),
-          isActive: this.isModified,
-          bgColor: this.currentTheme.colors.surface,
-          activeColor: this.currentTheme.colors.primary,
-          textColor: this.currentTheme.colors.text,
-          btnSize: 48,
-          fontSize: 12,
-          onButtonClick: () => {
-            this.saveFile();
-          }
-        })
-        IconButton({
-          text: $r('app.string.btn_menu'),
-          bgColor: this.currentTheme.colors.surface,
-          textColor: this.currentTheme.colors.text,
-          btnSize: 48,
-          fontSize: 12,
-          onButtonClick: () => {
-            this.showRightDrawer = true;
-          }
-        })
-      }
-      .padding({ left: 12, right: 12 })
-      .alignItems(VerticalAlign.Center)
-    }
-    .scrollable(ScrollDirection.Horizontal)
-    .scrollBar(BarState.Off)
-    .width('100%')
-    .height(64)
-    .backgroundColor(this.currentTheme.colors.surface)
-    .border({ width: { top: 0.5 }, color: this.currentTheme.colors.border })
-  }
-  
-  /**
-   * 获取文件扩展名徽章
-   */
-  private getFileExtensionBadge(): string {
-    const ext = this.fileName.substring(this.fileName.lastIndexOf('.') + 1).toLowerCase();
-    const extUpper = ext.toUpperCase();
-    if (!ext || ext === this.fileName) {
-      return 'FILE';
-    }
-    return extUpper.substring(0, 4);
-  }
-
-  @Builder
-  buildFileInfoBar(): void {
-    Row() {
-      // 文件类型标识 - 鸿蒙风格
-      Text(this.language.toUpperCase())
-        .fontSize(11)
-        .fontColor(this.currentTheme.colors.primary)
-        .fontWeight(FontWeight.Medium)
-        .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-        .backgroundColor(this.currentTheme.colors.background)
-        .borderRadius(8)
-        .border({
-          width: 1,
-          color: this.currentTheme.colors.primary
-        })
-
-      Blank()
-
-      // 统计信息 - 纯文字标识
-      Row({ space: 12 }) {
-        Row({ space: 4 }) {
-          Text('字符')
-            .fontSize(11)
-            .fontColor(this.currentTheme.colors.textSecondary)
-            .opacity(0.6)
-          Text(`${this.content.length}`)
-            .fontSize(12)
-            .fontColor(this.currentTheme.colors.textSecondary)
-            .fontWeight(FontWeight.Medium)
-        }
-
-        Row({ space: 4 }) {
-          Text('行数')
-            .fontSize(11)
-            .fontColor(this.currentTheme.colors.textSecondary)
-            .opacity(0.6)
-          Text(`${this.lineCount}`)
-            .fontSize(12)
-            .fontColor(this.currentTheme.colors.textSecondary)
-            .fontWeight(FontWeight.Medium)
-        }
-      }
-    }
-    .width('100%')
-    .height(32)
-    .padding({ left: 16, right: 16 })
-    .backgroundColor(this.currentTheme.colors.surface)
-    .border({ width: { bottom: 0.5 }, color: this.currentTheme.colors.border })
-  }
-
-  @Builder
-  buildSearchBar(): void {
-    // 移动端优化：按钮更大（44x44 vp），输入框占满宽度
-    
-    Column() {
-      // 搜索行 - 包含搜索输入框和导航按钮
-      Row({ space: 8 }) {
-        TextInput({ placeholder: $r('app.string.placeholder_search'), text: this.searchText })
-          .layoutWeight(1)
-          .height(this.isMobileMode ? 44 : 40)
-          .fontSize(14)
-          .backgroundColor(this.currentTheme.editor.background)
-          .fontColor(this.currentTheme.colors.text)
-          .placeholderColor(this.currentTheme.colors.textSecondary)
-          .borderRadius(12)
-          .padding({ left: 12, right: 12 })
-          .border({
-            width: 1,
-            color: this.currentTheme.colors.border
-          })
-          .onChange((value: string) => {
-            this.searchText = value;
-          })
-          .onSubmit(() => {
-            this.performSearch();
-          })
-        
-        // 搜索结果计数
-        if (this.searchResults.length > 0) {
-          Text(`${this.currentSearchIndex + 1}/${this.searchResults.length}`)
-            .fontSize(12)
-            .fontColor(this.currentTheme.colors.textSecondary)
-            .fontWeight(FontWeight.Medium)
-            .padding({ left: 8, right: 8 })
-        }
-        
-        // 导航按钮：上一个
-        Button($r('app.string.btn_previous'))
-          .height(this.isMobileMode ? 44 : 40)
-          .width(this.isMobileMode ? 44 : 'auto')
-          .fontSize(this.isMobileMode ? 14 : 13)
-          .fontWeight(FontWeight.Medium)
-          .backgroundColor(this.currentTheme.editor.background)
-          .fontColor(this.currentTheme.colors.text)
-          .borderRadius(12)
-          .border({
-            width: 1,
-            color: this.currentTheme.colors.border
-          })
-          .stateEffect(true)
-          .enabled(this.searchResults.length > 0)
-          .onClick(() => {
-            this.prevSearchResult();
-          })
-        
-        // 导航按钮：下一个
-        Button($r('app.string.btn_next'))
-          .height(this.isMobileMode ? 44 : 40)
-          .width(this.isMobileMode ? 44 : 'auto')
-          .fontSize(this.isMobileMode ? 14 : 13)
-          .fontWeight(FontWeight.Medium)
-          .backgroundColor(this.currentTheme.editor.background)
-          .fontColor(this.currentTheme.colors.text)
-          .borderRadius(12)
-          .border({
-            width: 1,
-            color: this.currentTheme.colors.border
-          })
-          .stateEffect(true)
-          .enabled(this.searchResults.length > 0)
-          .onClick(() => {
-            this.nextSearchResult();
-          })
-        
-        // 搜索按钮
-        Button($r('app.string.btn_search'))
-          .height(this.isMobileMode ? 44 : 40)
-          .width(this.isMobileMode ? 44 : 'auto')
-          .fontSize(this.isMobileMode ? 14 : 13)
-          .fontWeight(FontWeight.Medium)
-          .backgroundColor(this.currentTheme.colors.primary)
-          .fontColor(Color.White)
-          .borderRadius(12)
-          .stateEffect(true)
-          .onClick(() => {
-            this.performSearch();
-          })
-        
-        // 关闭按钮
-        Button($r('app.string.btn_close'))
-          .height(this.isMobileMode ? 44 : 40)
-          .width(this.isMobileMode ? 44 : 'auto')
-          .fontSize(this.isMobileMode ? 14 : 13)
-          .fontWeight(FontWeight.Medium)
-          .backgroundColor(Color.Transparent)
-          .fontColor(this.currentTheme.colors.textSecondary)
-          .borderRadius(12)
-          .stateEffect(true)
-          .onClick(() => {
-            this.showSearchBar = false;
-            this.searchResults = [];
-          })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 12 })
-      
-      // 替换行 - 包含替换输入框和替换按钮
-      Row({ space: 8 }) {
-        TextInput({ placeholder: $r('app.string.placeholder_replace'), text: this.replaceText })
-          .layoutWeight(1)
-          .height(this.isMobileMode ? 44 : 40)
-          .fontSize(14)
-          .backgroundColor(this.currentTheme.editor.background)
-          .fontColor(this.currentTheme.colors.text)
-          .placeholderColor(this.currentTheme.colors.textSecondary)
-          .borderRadius(12)
-          .padding({ left: 12, right: 12 })
-          .border({
-            width: 1,
-            color: this.currentTheme.colors.border
-          })
-          .onChange((value: string) => {
-            this.replaceText = value;
-          })
-        
-        // 替换当前按钮
-        Button($r('app.string.btn_replace'))
-          .height(this.isMobileMode ? 44 : 40)
-          .width(this.isMobileMode ? 44 : 'auto')
-          .fontSize(this.isMobileMode ? 14 : 13)
-          .fontWeight(FontWeight.Medium)
-          .backgroundColor(this.currentTheme.editor.background)
-          .fontColor(this.currentTheme.colors.text)
-          .borderRadius(12)
-          .border({
-            width: 1,
-            color: this.currentTheme.colors.border
-          })
-          .stateEffect(true)
-          .enabled(this.searchResults.length > 0)
-          .onClick(() => {
-            this.replaceCurrent();
-          })
-        
-        // 全部替换按钮
-        Button($r('app.string.btn_all'))
-          .height(this.isMobileMode ? 44 : 40)
-          .width(this.isMobileMode ? 44 : 'auto')
-          .fontSize(this.isMobileMode ? 14 : 13)
-          .fontWeight(FontWeight.Medium)
-          .backgroundColor(this.currentTheme.editor.background)
-          .fontColor(this.currentTheme.colors.text)
-          .borderRadius(12)
-          .border({
-            width: 1,
-            color: this.currentTheme.colors.border
-          })
-          .stateEffect(true)
-          .enabled(this.searchResults.length > 0)
-          .onClick(() => {
-            this.replaceAll();
-          })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 8, bottom: 12 })
-    }
-    .width('100%')
-    .backgroundColor(this.currentTheme.colors.surface)
-    .border({ width: { bottom: 0.5 }, color: this.currentTheme.colors.border })
-    .shadow({
-      radius: 8,
-      color: 'rgba(0, 0, 0, 0.08)',
-      offsetX: 0,
-      offsetY: 2
-    })
-    .opacity(this.showSearchBar ? 1 : 0)
-    .height(this.showSearchBar ? 'auto' : 0)
-    .clip(true)
-    .animation({ 
-      duration: 250, 
-      curve: Curve.EaseInOut 
-    })
-  }
-
-  @Builder
-  buildEditor(): void {
-    if (this.isPreviewMode) {
-      // 预览模式：只读，带语法高亮
-      Scroll(this.editorScroller) {
-        Row() {
-          // 行号列
-          if (this.showLineNumbers) {
-            Column() {
-              ForEach(this.getDisplayLineNumbers(), (lineNum: number) => {
-                Text(`${lineNum}`)
-                  .fontSize(this.fontSize)
-                  .fontColor(this.currentTheme.editor.lineNumber)
-                  .fontFamily('monospace')
-                  .width(40)
-                  .height(this.lineHeight)
-                  .textAlign(TextAlign.End)
-                  .padding({ right: 8 })
-                  .opacity(lineNum <= this.lineCount ? 1.0 : 0.3)
-              }, (lineNum: number) => `ln_${lineNum}`)
-            }
-            .alignItems(HorizontalAlign.End)
-            .backgroundColor(this.currentTheme.editor.background)
-            
-            // 分隔线
-            Column()
-              .width(1)
-              .height('100%')
-              .backgroundColor(this.currentTheme.colors.border)
-          }
-          
-          // 代码区域（高亮）
-          Column() {
-            ForEach(this.getCodeLines(), (line: string, lineIndex: number) => {
-              Row() {
-                Text() {
-                  ForEach(this.syntaxService.tokenize(line, this.language), (token: Token, tokenIndex: number) => {
-                    Span(token.value.replace(/ /g, '\u00A0'))
-                      .fontSize(this.fontSize)
-                      .fontColor(this.getTokenColor(token.type))
-                      .fontFamily('monospace')
-                  }, (token: Token, tokenIndex: number) => `t_${lineIndex}_${tokenIndex}`)
-                }
-                .fontSize(this.fontSize)
-                .fontFamily('monospace')
-                .lineHeight(this.lineHeight)
-                .textOverflow({ overflow: TextOverflow.Clip })
-                .maxLines(1)
-              }
-              .width('100%')
-              .height(this.lineHeight)
-              .alignItems(VerticalAlign.Top)
-            }, (line: string, lineIndex: number) => `line_${lineIndex}`)
-          }
-          .layoutWeight(1)
-          .padding({ left: 8, right: 16 })
-          .alignItems(HorizontalAlign.Start)
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Top)
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .padding({ top: 12, bottom: 12 })
-      .scrollBar(BarState.On)
-      .scrollBarWidth(10)
-      .scrollBarColor(this.currentTheme.colors.textSecondary)
-      .backgroundColor(this.currentTheme.editor.background)
-    } else {
-      // 编辑模式：使用 CodeEditorView 组件
-      CodeEditorView({
-        content: this.content,
-        language: this.language,
-        fontSize: this.fontSize,
-        textColor: this.currentTheme.editor.text,
-        bgColor: this.currentTheme.editor.background,
-        lineNumberColor: this.currentTheme.editor.lineNumber,
-        caretColor: this.currentTheme.colors.primary,
-        editorBorderColor: this.currentTheme.colors.border,
-        keywordColor: this.currentTheme.syntax.keyword,
-        stringColor: this.currentTheme.syntax.string,
-        commentColor: this.currentTheme.syntax.comment,
-        numberColor: this.currentTheme.syntax.number,
-        functionColor: this.currentTheme.syntax.function,
-        onChange: (value: string) => {
-          this.onContentChange(value);
-        }
-      })
-    }
-  }
-  
-  /**
-   * 计算编辑器最小高度，确保行号和内容对齐
-   */
-  private getEditorMinHeight(): number {
-    const minLines = Math.max(this.lineCount, 100);
-    return minLines * this.lineHeight;
-  }
-
-  /**
-   * 获取显示的行号
-   * 预览模式：只显示实际代码行数
-   * 编辑模式：至少显示100行，方便编辑
-   */
-  private getDisplayLineNumbers(): number[] {
-    // 直接根据内容计算行数，不依赖 lineCount 状态
-    const actualLines = this.content.split('\n').length;
-    // 预览模式只显示实际行数，编辑模式至少显示100行
-    const minLines = this.isPreviewMode ? actualLines : 100;
-    const totalLines = Math.max(actualLines, minLines);
-    const lines: number[] = [];
-    for (let i = 1; i <= totalLines; i++) {
-      lines.push(i);
-    }
-    return lines;
   }
 
   /**
@@ -2097,17 +1207,17 @@ struct CodeEditor {
         this.formatCode();
         break;
       case 'search':
-        this.getUIContext().animateTo({ 
-          duration: 250, 
-          curve: Curve.EaseInOut 
+        this.getUIContext().animateTo({
+          duration: 250,
+          curve: Curve.EaseInOut
         }, () => {
           this.showSearchBar = true;
         });
         break;
       case 'preview':
-        this.getUIContext().animateTo({ 
-          duration: 300, 
-          curve: this.springCurve 
+        this.getUIContext().animateTo({
+          duration: 300,
+          curve: this.springCurve
         }, () => {
           this.isPreviewMode = !this.isPreviewMode;
           this.editorScale = this.isPreviewMode ? 0.98 : 1;
@@ -2134,6 +1244,8 @@ struct CodeEditor {
         this.openSettings();
         break;
     }
+    // 强制刷新布局以更新状态
+    this.layoutRefreshCounter++;
   }
 
   /**

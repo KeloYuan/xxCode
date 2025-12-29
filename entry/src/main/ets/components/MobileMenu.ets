@@ -50,6 +50,8 @@ export struct MobileMenu {
         Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
         this.buildMenuItem('打开文件', 'open')
         Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
+        this.buildMenuItem('导入文件', 'import')
+        Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
         this.buildMenuItem('导出文件', 'export')
 
         // 分组标题
