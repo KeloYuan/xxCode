@@ -1,13 +1,42 @@
+# Node modules
 /node_modules
 /oh_modules
+
+# Local configuration
 /local.properties
 /.idea
+
+# Build outputs
 **/build
 /.hvigor
 .cxx
 /.clangd
 /.clang-format
 /.clang-tidy
+
+# Test files
 **/.test
 /.appanalyzer
+
+# Project specific
 /LookLess-master/
+
+# Sensitive information - Signing certificates and keys
+**/*.p12
+**/*.pem
+**/*.cer
+**/*.p7b
+**/*.p7s
+**/*.jks
+**/*.keystore
+**/id/
+**/signature/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OAuth and API keys
+credentials.json
+secrets.json
