@@ -40,3 +40,39 @@
 # OAuth and API keys
 credentials.json
 secrets.json
+
+# Internal development documentation (keep local only)
+CLAUDE.md
+docs/
+harmonyos-knowledge/
+harmonyos-knowledge-bot/
+
+# AI assistant configurations
+.claude/
+.cursor/
+.kiro/
+
+# Project internal files (keep local only)
+FINAL_SUMMARY.md
+POWERSHELL_FIX.md
+PROJECT_README.md
+Project.md
+REQUIREMENTS.md
+VERIFICATION_REPORT.md
+Log.md
+
+# Demo and testing projects (keep local only)
+ui-demo/
+website/
+
+# Development scripts (keep local only)
+run.sh
+test_compile.bat
+
+# Log files
+*.log
+
+# Screenshots and unrelated images in root
+/*.png
+/*.jpg
+/*.jpeg
