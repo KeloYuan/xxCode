@@ -13,6 +13,7 @@ import { BreakpointService, Breakpoint } from '../services/BreakpointService';
 import { SyntaxHighlightService, Token } from '../services/SyntaxHighlightService';
 import { CodeFormatterService } from '../services/CodeFormatterService';
 import { FileManagerService, FileItem } from '../services/FileManagerService';
+import { CodeExecutionService } from '../services/CodeExecutionService';
 import { FileTab } from '../models/FileTabModel';
 import { CodeTemplate, CodeTemplateData } from '../models/CodeTemplateModel';
 import { IconButton } from '../components/IconButton';
@@ -81,7 +82,9 @@ struct CodeEditor {
   // 运行控制台状态
   @State showConsole: boolean = false;
   @State consoleLogs: string[] = [];
+  @State isExecutingCode: boolean = false; // 代码执行中状态
   private webController: webview.WebviewController = new webview.WebviewController();
+  private codeExecutionService: CodeExecutionService = CodeExecutionService.getInstance();
   
   // 编辑器状态（当前标签）
   @State content: string = '';
@@ -802,6 +805,7 @@ struct CodeEditor {
       // 运行控制台状态
       showConsole: this.showConsole,
       consoleLogs: this.consoleLogs,
+      isExecutingCode: this.isExecutingCode,
 
       // 编辑器状态
       content: this.content,
@@ -1132,44 +1136,104 @@ struct CodeEditor {
   /**
    * 运行代码
    */
-  private runCode() {
+  private async runCode() {
     // 1. 显示控制台
     this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
       this.showConsole = true;
     });
     this.consoleLogs = []; // 清空日志
-    this.consoleLogs.push('[System] Starting execution...');
+    this.consoleLogs.push(`[System] Starting ${this.language} execution...`);
 
-    // 2. 检查语言
-    if (this.language !== 'javascript' && this.language !== 'typescript') {
-      this.consoleLogs.push('[System] Warning: Currently only JavaScript execution is supported directly.');
-      if (this.language === 'html') {
-         this.consoleLogs.push('[System] Tip: For HTML, please use "Preview" mode.');
-      }
+    // 2. 检查是否需要远程执行
+    const useRemoteExecution = !this.codeExecutionService.isLanguageSupported('javascript') ||
+      (this.language !== 'javascript' && this.language !== 'typescript');
+
+    // 3. JavaScript/TypeScript 使用本地执行
+    if (this.language === 'javascript' || this.language === 'typescript') {
+      this.consoleLogs.push('[System] Using local JavaScript engine...');
+      this.executeLocalJavaScript();
       return;
     }
 
-    // 3. 准备沙箱代码
-    // 我们重写 console.log 以捕获输出
-    // 为了防止死循环卡死 UI，建议加上超时机制（这里简化处理）
-    const codeToRun = this.content
-      .replace(/\\/g, '\\\\') // 转义反斜杠
-      .replace(/`/g, '\\`')   // 转义反引号
-      .replace(/\$/g, '\\$'); // 转义美元符号
+    // 4. 其他语言使用远程 API 执行
+    if (this.codeExecutionService.isLanguageSupported(this.language)) {
+      this.isExecutingCode = true;
+      this.layoutRefreshCounter++; // 刷新 UI 显示加载状态
 
+      this.consoleLogs.push(`[System] Connecting to remote execution service for ${this.language}...`);
+
+      try {
+        const result = await this.codeExecutionService.executeCode(
+          this.content,
+          this.language,
+          15000 // 15秒超时
+        );
+
+        this.isExecutingCode = false;
+        this.layoutRefreshCounter++;
+
+        if (result.exitCode === -1) {
+          // 应该使用本地执行（这个分支实际上不会出现，因为 JS/TS 在前面已经处理）
+          this.executeLocalJavaScript();
+          return;
+        }
+
+        // 显示执行结果
+        this.consoleLogs.push('');
+        this.consoleLogs.push(`--- Execution Result (Exit Code: ${result.exitCode}) ---`);
+
+        if (result.stdout) {
+          this.consoleLogs.push('[Output]');
+          result.stdout.split('\n').forEach(line => {
+            this.consoleLogs.push(line);
+          });
+        }
+
+        if (result.stderr) {
+          this.consoleLogs.push('[Error]');
+          result.stderr.split('\n').forEach(line => {
+            this.consoleLogs.push(line);
+          });
+        }
+
+        this.consoleLogs.push('');
+        this.consoleLogs.push(`[System] Execution completed in ${result.duration}ms`);
+
+      } catch (error) {
+        this.isExecutingCode = false;
+        this.layoutRefreshCounter++;
+        const errMsg = error instanceof Error ? error.message : String(error);
+        this.consoleLogs.push(`[System] Execution failed: ${errMsg}`);
+      }
+
+    } else {
+      // 不支持的语言
+      this.consoleLogs.push(`[System] Error: Language '${this.language}' is not supported.`);
+      this.consoleLogs.push(`[System] Supported languages: ${this.codeExecutionService.getSupportedLanguages().join(', ')}`);
+      if (this.language === 'html') {
+        this.consoleLogs.push('[System] Tip: For HTML, please use "Preview" mode to view rendered output.');
+      }
+    }
+  }
+
+  /**
+   * 本地执行 JavaScript 代码
+   */
+  private executeLocalJavaScript() {
+    // 准备沙箱代码
     const sandboxScript = `
       (function() {
         try {
           ${this.content}
         } catch (e) {
-          console.error(e.toString());
+          console.error('[Runtime Error] ' + e.toString());
+          console.error(e.stack || '');
         }
       })();
     `;
 
-    // 4. 执行
+    // 执行
     try {
-      // 必须先加载一个基础页面才能运行 JS，我们在 Web 组件初始化时已经加载了 about:blank
       this.webController.runJavaScript(sandboxScript);
     } catch (e) {
       this.consoleLogs.push('[System] Execution failed: ' + JSON.stringify(e));

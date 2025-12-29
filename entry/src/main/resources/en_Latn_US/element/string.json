@@ -391,6 +391,10 @@
     {
       "name": "text_modified",
       "value": "Modified"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "Used for executing Python, Java, and other code (remote API service)"
     }
   ]
 }

@@ -9,6 +9,7 @@ export struct ConsolePanel {
   @Prop visible: boolean = false;
   @Prop logs: string[] = [];
   @Prop panelHeight: number = 300;
+  @Prop isExecuting: boolean = false; // 是否正在执行代码
   onClose: () => void = () => {};
   onClear: () => void = () => {};
   
@@ -64,7 +65,21 @@ export struct ConsolePanel {
         // 日志显示区
         Scroll(this.scroller) {
           Column({ space: 4 }) {
-            if (this.logs.length === 0) {
+            // 执行中状态
+            if (this.isExecuting) {
+              Row({ space: 8 }) {
+                LoadingProgress()
+                  .width(18)
+                  .height(18)
+                  .color(this.currentTheme.colors.primary)
+                Text('正在执行代码，请稍候...')
+                  .fontSize(13)
+                  .fontColor(this.currentTheme.colors.textSecondary)
+              }
+              .width('100%')
+              .padding(16)
+              .justifyContent(FlexAlign.Center)
+            } else if (this.logs.length === 0) {
               Text('点击运行按钮执行代码...')
                 .fontSize(13)
                 .fontColor(this.currentTheme.colors.textSecondary)

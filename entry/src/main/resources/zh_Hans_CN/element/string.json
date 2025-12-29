@@ -391,6 +391,10 @@
     {
       "name": "text_modified",
       "value": "已修改"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "用于执行 Python、Java 等代码（远程 API 服务）"
     }
   ]
 }

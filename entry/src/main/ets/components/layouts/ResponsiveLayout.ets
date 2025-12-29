@@ -28,6 +28,7 @@ export interface EditorState {
   // 运行控制台状态
   showConsole: boolean;
   consoleLogs: string[];
+  isExecutingCode: boolean;
 
   // 编辑器状态
   content: string;

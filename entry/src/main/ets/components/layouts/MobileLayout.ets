@@ -71,6 +71,7 @@ export struct MobileLayout {
           ConsolePanel({
             visible: this.state.showConsole,
             logs: this.state.consoleLogs,
+            isExecuting: this.state.isExecutingCode,
             panelHeight: 300,
             onClose: () => {
               this.callbacks.onCloseConsole();
@@ -276,6 +277,21 @@ export struct MobileLayout {
           this.callbacks.onToggleTabManager(true);
         })
 
+      // 预览/编辑切换按钮
+      Button(this.state.isPreviewMode ? $r('app.string.btn_edit') : $r('app.string.btn_preview'))
+        .height(44)
+        .padding({ left: 12, right: 12 })
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.state.currentTheme.colors.text)
+        .backgroundColor(this.state.currentTheme.editor.background)
+        .borderRadius(10)
+        .border({ width: 1, color: this.state.currentTheme.colors.border })
+        .stateEffect(true)
+        .onClick(() => {
+          this.callbacks.onTogglePreviewMode();
+        })
+
       // 右侧: 菜单按钮
       Button('...')
         .height(44)
@@ -468,22 +484,44 @@ export struct MobileLayout {
             this.callbacks.onPerformSearch();
           })
 
-        if (this.state.searchResults.length > 0) {
-          Text(`${this.state.currentSearchIndex + 1}/${this.state.searchResults.length}`)
-            .fontSize(12)
-            .fontColor(this.state.currentTheme.colors.textSecondary)
-            .fontWeight(FontWeight.Medium)
-            .padding({ left: 8, right: 8 })
-        }
+        Button($r('app.string.btn_search'))
+          .height(40)
+          .padding({ left: 12, right: 12 })
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .backgroundColor(this.state.currentTheme.colors.primary)
+          .fontColor(Color.White)
+          .borderRadius(10)
+          .stateEffect(true)
+          .onClick(() => {
+            this.callbacks.onPerformSearch();
+          })
 
+        Button($r('app.string.btn_close'))
+          .height(40)
+          .padding({ left: 12, right: 12 })
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .backgroundColor(Color.Transparent)
+          .fontColor(this.state.currentTheme.colors.textSecondary)
+          .borderRadius(10)
+          .stateEffect(true)
+          .onClick(() => {
+            this.callbacks.onCloseSearchBar();
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 12 })
+
+      Row({ space: 8 }) {
         Button($r('app.string.btn_previous'))
-          .height(44)
-          .width(44)
+          .height(40)
+          .padding({ left: 12, right: 12 })
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
           .backgroundColor(this.state.currentTheme.editor.background)
           .fontColor(this.state.currentTheme.colors.text)
-          .borderRadius(12)
+          .borderRadius(10)
           .border({
             width: 1,
             color: this.state.currentTheme.colors.border
@@ -495,13 +533,13 @@ export struct MobileLayout {
           })
 
         Button($r('app.string.btn_next'))
-          .height(44)
-          .width(44)
+          .height(40)
+          .padding({ left: 12, right: 12 })
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
           .backgroundColor(this.state.currentTheme.editor.background)
           .fontColor(this.state.currentTheme.colors.text)
-          .borderRadius(12)
+          .borderRadius(10)
           .border({
             width: 1,
             color: this.state.currentTheme.colors.border
@@ -512,34 +550,22 @@ export struct MobileLayout {
             this.callbacks.onNextSearch();
           })
 
-        Button($r('app.string.btn_search'))
-          .height(44)
-          .width(44)
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-          .backgroundColor(this.state.currentTheme.colors.primary)
-          .fontColor(Color.White)
-          .borderRadius(12)
-          .stateEffect(true)
-          .onClick(() => {
-            this.callbacks.onPerformSearch();
-          })
+        Blank()
 
-        Button($r('app.string.btn_close'))
-          .height(44)
-          .width(44)
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-          .backgroundColor(Color.Transparent)
-          .fontColor(this.state.currentTheme.colors.textSecondary)
-          .borderRadius(12)
-          .stateEffect(true)
-          .onClick(() => {
-            this.callbacks.onCloseSearchBar();
-          })
+        if (this.state.searchResults.length > 0) {
+          Text(`${this.state.currentSearchIndex + 1}/${this.state.searchResults.length}`)
+            .fontSize(12)
+            .fontColor(this.state.currentTheme.colors.textSecondary)
+            .fontWeight(FontWeight.Medium)
+        } else {
+          Text('0/0')
+            .fontSize(12)
+            .fontColor(this.state.currentTheme.colors.textSecondary)
+            .opacity(0.6)
+        }
       }
       .width('100%')
-      .padding({ left: 16, right: 16, top: 12 })
+      .padding({ left: 16, right: 16, top: 8 })
 
       // 替换行
       Row({ space: 8 }) {
@@ -561,13 +587,13 @@ export struct MobileLayout {
           })
 
         Button($r('app.string.btn_replace'))
-          .height(44)
-          .width(44)
+          .height(40)
+          .padding({ left: 12, right: 12 })
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
           .backgroundColor(this.state.currentTheme.editor.background)
           .fontColor(this.state.currentTheme.colors.text)
-          .borderRadius(12)
+          .borderRadius(10)
           .border({
             width: 1,
             color: this.state.currentTheme.colors.border
@@ -579,13 +605,13 @@ export struct MobileLayout {
           })
 
         Button($r('app.string.btn_all'))
-          .height(44)
-          .width(44)
+          .height(40)
+          .padding({ left: 12, right: 12 })
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
           .backgroundColor(this.state.currentTheme.editor.background)
           .fontColor(this.state.currentTheme.colors.text)
-          .borderRadius(12)
+          .borderRadius(10)
           .border({
             width: 1,
             color: this.state.currentTheme.colors.border
@@ -608,6 +634,10 @@ export struct MobileLayout {
       offsetX: 0,
       offsetY: 2
     })
+    .transition(
+      TransitionEffect.OPACITY.animation({ duration: 200, curve: Curve.EaseInOut })
+        .combine(TransitionEffect.translate({ y: -12 }))
+    )
   }
 
   /**

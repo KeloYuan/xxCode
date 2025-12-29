@@ -42,6 +42,7 @@ struct TabletCodeEditor {
   // UI状态
   @State isSidebarVisible: boolean = true
   @State sidebarWidth: number = 280
+  @State sidebarRenderWidth: number = 280
   @State sidebarOpacity: number = 1
   @State isDividerHovered: boolean = false
   @State showLoadingToast: boolean = false
@@ -99,12 +100,9 @@ struct TabletCodeEditor {
             onFolderToggle: (folder: FileNode) => this.toggleFolder(folder),
             onRefresh: () => this.refreshFileTree()
           })
-          .width(this.sidebarWidth)
+          .width(this.sidebarRenderWidth)
           .opacity(this.sidebarOpacity)
-          .transition(TransitionEffect.OPACITY.animation({
-            duration: 250,
-            curve: curves.springMotion(0.5, 0.9)
-          }))
+          .clip(true)
         }
 
         // 可拖拽分割线
@@ -247,6 +245,7 @@ struct TabletCodeEditor {
           let newWidth = this.sidebarWidth + event.offsetX
           newWidth = Math.max(200, Math.min(400, newWidth))
           this.sidebarWidth = newWidth
+          this.sidebarRenderWidth = newWidth
         })
         .onActionEnd(() => {
           // 吸附效果
@@ -255,6 +254,7 @@ struct TabletCodeEditor {
           } else if (this.sidebarWidth > 380) {
             this.sidebarWidth = 400
           }
+          this.sidebarRenderWidth = this.sidebarWidth
         })
     )
     .onHover((hover: boolean) => {
@@ -268,7 +268,26 @@ struct TabletCodeEditor {
    * 切换侧边栏显示
    */
   toggleSidebar(): void {
-    this.isSidebarVisible = !this.isSidebarVisible
+    const duration = 220
+    if (this.isSidebarVisible) {
+      animateTo({ duration, curve: Curve.EaseInOut }, () => {
+        this.sidebarOpacity = 0
+        this.sidebarRenderWidth = 0
+      })
+      setTimeout(() => {
+        this.isSidebarVisible = false
+      }, duration + 20)
+    } else {
+      this.isSidebarVisible = true
+      this.sidebarOpacity = 0
+      this.sidebarRenderWidth = 0
+      setTimeout(() => {
+        animateTo({ duration: 260, curve: curves.springMotion(0.6, 0.9) }, () => {
+          this.sidebarOpacity = 1
+          this.sidebarRenderWidth = this.sidebarWidth
+        })
+      }, 10)
+    }
   }
 
   /**

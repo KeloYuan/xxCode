@@ -117,6 +117,7 @@ export struct DesktopLayout {
           ConsolePanel({
             visible: this.state.showConsole,
             logs: this.state.consoleLogs,
+            isExecuting: this.state.isExecutingCode,
             panelHeight: 300,
             onClose: () => {
               this.callbacks.onCloseConsole();

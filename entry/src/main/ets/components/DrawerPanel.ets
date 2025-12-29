@@ -6,26 +6,72 @@
 @Component
 export struct DrawerPanel {
   @Prop drawerPosition: 'left' | 'right' = 'left';
-  @Prop visible: boolean = false;
+  @Prop @Watch('onVisibleChange') visible: boolean = false;
   @Prop bgColor: ResourceColor = Color.White;
   @Prop drawerWidth: number = 280;
   @BuilderParam content: () => void;
   onClose: () => void = () => {};
 
-  build() {
+  @State private isRendered: boolean = false;
+  @State private maskOpacity: number = 0;
+  @State private drawerOpacity: number = 0;
+  @State private drawerTranslateX: number = 0;
+
+  aboutToAppear() {
     if (this.visible) {
+      this.openDrawer();
+    }
+  }
+
+  private onVisibleChange(): void {
+    if (this.visible) {
+      this.openDrawer();
+    } else {
+      this.closeDrawer();
+    }
+  }
+
+  private getHiddenOffset(): number {
+    return this.drawerPosition === 'left' ? -48 : 48;
+  }
+
+  private openDrawer(): void {
+    this.isRendered = true;
+    this.maskOpacity = 0;
+    this.drawerOpacity = 0;
+    this.drawerTranslateX = this.getHiddenOffset();
+    animateTo({ duration: 220, curve: Curve.EaseOut }, () => {
+      this.maskOpacity = 1;
+      this.drawerOpacity = 1;
+      this.drawerTranslateX = 0;
+    });
+  }
+
+  private closeDrawer(): void {
+    animateTo({ duration: 180, curve: Curve.EaseInOut }, () => {
+      this.maskOpacity = 0;
+      this.drawerOpacity = 0;
+      this.drawerTranslateX = this.getHiddenOffset();
+    });
+    setTimeout(() => {
+      this.isRendered = false;
+    }, 200);
+  }
+
+  build() {
+    if (this.isRendered) {
       Stack({ alignContent: this.drawerPosition === 'left' ? Alignment.Start : Alignment.End }) {
         // 遮罩层 - 铺满整个屏幕
         Column()
           .width('100%')
           .height('100%')
           .backgroundColor('rgba(0, 0, 0, 0.45)')
-          .hitTestBehavior(HitTestMode.Transparent)
+          .hitTestBehavior(HitTestMode.Block)
+          .opacity(this.maskOpacity)
           .onClick(() => {
             console.info('Mask clicked, close drawer');
             this.onClose();
           })
-          .transition(TransitionEffect.OPACITY.animation({ duration: 180, curve: Curve.EaseInOut }))
           .zIndex(0)
 
         // 抽屉内容 - 不覆盖遮罩区域
@@ -45,11 +91,8 @@ export struct DrawerPanel {
             offsetX: 6,
             offsetY: 0
           })
-          .hitTestBehavior(HitTestMode.Block)
-          .transition(
-            TransitionEffect.OPACITY.animation({ duration: 220, curve: Curve.EaseOut })
-              .combine(TransitionEffect.translate({ x: -48 }))
-          )
+          .opacity(this.drawerOpacity)
+          .translate({ x: this.drawerTranslateX })
           .zIndex(1)
         } else {
           Column() {
@@ -67,11 +110,8 @@ export struct DrawerPanel {
             offsetX: -6,
             offsetY: 0
           })
-          .hitTestBehavior(HitTestMode.Block)
-          .transition(
-            TransitionEffect.OPACITY.animation({ duration: 220, curve: Curve.EaseOut })
-              .combine(TransitionEffect.translate({ x: 48 }))
-          )
+          .opacity(this.drawerOpacity)
+          .translate({ x: this.drawerTranslateX })
           .zIndex(1)
         }
       }

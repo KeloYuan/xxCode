@@ -35,8 +35,6 @@ export struct MobileMenu {
         this.buildMenuItem('格式化代码', 'format')
         Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
         this.buildMenuItem('查找替换', 'search')
-        Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
-        this.buildMenuItem('预览模式', 'preview')
 
         // 分组标题
         Text('文件')
