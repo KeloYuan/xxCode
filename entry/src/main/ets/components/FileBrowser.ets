@@ -124,12 +124,14 @@ export struct FileBrowser {
             }, (file: FileItem) => file.path)
           }
           .width('100%')
+          .height('100%')
           .justifyContent(FlexAlign.Start)
           .alignItems(HorizontalAlign.Start)
           .padding({ top: 8, bottom: 8, left: 8, right: 8 })
         }
         .layoutWeight(1)
         .scrollBar(BarState.Auto)
+        .align(Alignment.TopStart)
       }
     }
     .width('100%')

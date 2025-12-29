@@ -115,6 +115,18 @@ const fileManager = FileManagerService.getInstance();
 const themeService = ThemeService.getInstance();
 ```
 
+### 代码验证模式
+**重要：每次编写代码后必须遵循以下流程**
+1. **构建验证**：完成代码修改后，先运行 `hvigorw assembleHap` 检测是否有编译错误
+2. **错误修复**：如果存在错误，先自行修复所有编译问题
+3. **需求确认**：如果实现与需求存在歧义或冲突，必须先询问用户确认方案
+4. **完成汇报**：只有在构建成功且无错误时，才告知用户代码已完成
+
+```bash
+# 标准验证流程
+hvigorw assembleHap
+```
+
 ## 重要设计模式
 
 ### 组件通信

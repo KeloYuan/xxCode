@@ -29,11 +29,11 @@ export struct MobileMenu {
       // 菜单列表
       Column() {
         this.buildMenuItem('运行代码', 'run')
-        Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
+        Divider().color(`${this.primaryColor}22`).strokeWidth(0.5).margin({ left: 20, right: 20 })
         this.buildMenuItem('代码模板', 'template')
-        Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
+        Divider().color(`${this.primaryColor}22`).strokeWidth(0.5).margin({ left: 20, right: 20 })
         this.buildMenuItem('格式化代码', 'format')
-        Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
+        Divider().color(`${this.primaryColor}22`).strokeWidth(0.5).margin({ left: 20, right: 20 })
         this.buildMenuItem('查找替换', 'search')
 
         // 分组标题
@@ -45,11 +45,11 @@ export struct MobileMenu {
           .padding({ left: 20, top: 20, bottom: 8 })
 
         this.buildMenuItem('保存文件', 'save')
-        Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
+        Divider().color(`${this.primaryColor}22`).strokeWidth(0.5).margin({ left: 20, right: 20 })
         this.buildMenuItem('打开文件', 'open')
-        Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
+        Divider().color(`${this.primaryColor}22`).strokeWidth(0.5).margin({ left: 20, right: 20 })
         this.buildMenuItem('导入文件', 'import')
-        Divider().color(`${this.textColor}15`).strokeWidth(0.5).margin({ left: 20, right: 20 })
+        Divider().color(`${this.primaryColor}22`).strokeWidth(0.5).margin({ left: 20, right: 20 })
         this.buildMenuItem('导出文件', 'export')
 
         // 分组标题

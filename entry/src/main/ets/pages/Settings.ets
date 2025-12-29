@@ -6,9 +6,14 @@ import { router, window } from '@kit.ArkUI';
 import { common, Want } from '@kit.AbilityKit';
 import { preferences } from '@kit.ArkData';
 import { ThemeService, Theme } from '../services/ThemeService';
+import pasteboard from '@ohos.pasteboard';
 
 interface WindowBackgroundSetter {
   setWindowBackgroundColor?: (color: string) => void;
+}
+
+interface DialogResult {
+  index: number;
 }
 
 @Entry
@@ -33,8 +38,9 @@ struct Settings {
   private context: common.UIAbilityContext | null = null;
   private themeService: ThemeService = ThemeService.getInstance();
   
-  private readonly appVersion: string = '3.0.0';
+  private readonly appVersion: string = '4.0.0';
   private readonly buildNumber: string = '1';
+  private readonly gitCodeUrl: string = 'https://gitcode.com/KeloYuan/xxCode';
   
   aboutToAppear() {
     this.context = this.getUIContext().getHostContext() as common.UIAbilityContext;
@@ -460,9 +466,15 @@ struct Settings {
       Column() {
         this.buildItem($r('app.string.settings_version'), `${this.appVersion} (${this.buildNumber})`, false)
         Divider().color(this.currentTheme.colors.border).margin({ left: 12, right: 12 })
-        this.buildItem($r('app.string.settings_app_name'), 'TextX', false)
+        this.buildItem($r('app.string.settings_app_name'), '元代码', false)
         Divider().color(this.currentTheme.colors.border).margin({ left: 12, right: 12 })
-        this.buildItem($r('app.string.settings_developer'), '张思怡', false)
+        this.buildItem($r('app.string.settings_developer'), '谢旺涛，张思怡', false)
+        Divider().color(this.currentTheme.colors.border).margin({ left: 12, right: 12 })
+        this.buildItem('运营', '张思怡', false)
+        Divider().color(this.currentTheme.colors.border).margin({ left: 12, right: 12 })
+        this.buildLinkItem('开源地址', 'GitCode', $r('app.media.gitcode'), () => {
+          this.showOpenSourceDialog();
+        })
         
       }
       .width('100%').backgroundColor(this.currentTheme.colors.surface).borderRadius(12).padding(4)
@@ -518,5 +530,65 @@ struct Settings {
       Text(value + (showArrow ? ' >' : '')).fontSize(14).fontColor(this.currentTheme.colors.textSecondary)
     }
     .width('100%').height(52).padding({ left: 12, right: 12 })
+  }
+
+  @Builder
+  buildLinkItem(label: ResourceStr | string, value: string, icon: Resource, onClick?: () => void) {
+    Row() {
+      Text(label)
+        .fontSize(16)
+        .fontColor(this.currentTheme.colors.text)
+      Blank()
+      Row({ space: 6 }) {
+        Image(icon)
+          .width(20)
+          .height(20)
+          .objectFit(ImageFit.Contain)
+        Text(value)
+          .fontSize(14)
+          .fontColor(this.currentTheme.colors.textSecondary)
+      }
+    }
+    .width('100%')
+    .height(52)
+    .padding({ left: 12, right: 12 })
+    .onClick(() => {
+      if (onClick) {
+        onClick();
+      }
+    })
+  }
+
+  private showOpenSourceDialog(): void {
+    this.getUIContext().getPromptAction().showDialog({
+      title: '开源地址',
+      message: `这是 GitCode 上的开源地址，欢迎大家共创：\n${this.gitCodeUrl}`,
+      buttons: [
+        { text: '复制链接', color: this.currentTheme.colors.primary },
+        { text: '关闭', color: this.currentTheme.colors.textSecondary }
+      ]
+    }).then((result: DialogResult) => {
+      if (result.index === 0) {
+        this.copyGitCodeUrl();
+      }
+    }).catch((err: Error) => {
+      console.error('showDialog error:', err.message);
+    });
+  }
+
+  private copyGitCodeUrl(): void {
+    try {
+      const pasteboardInstance = pasteboard.getSystemPasteboard();
+      const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, this.gitCodeUrl);
+      pasteboardInstance.setData(pasteData).then(() => {
+        this.getUIContext().getPromptAction().showToast({ message: '链接已复制' });
+      }).catch((err: Error) => {
+        console.error('copy link error:', err.message);
+        this.getUIContext().getPromptAction().showToast({ message: '复制失败' });
+      });
+    } catch (e) {
+      console.error('copy link error:', JSON.stringify(e));
+      this.getUIContext().getPromptAction().showToast({ message: '复制失败' });
+    }
   }
 }

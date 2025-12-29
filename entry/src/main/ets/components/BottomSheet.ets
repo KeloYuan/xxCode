@@ -19,11 +19,12 @@ export struct BottomSheet {
           .width('100%')
           .height('100%')
           .backgroundColor('rgba(0, 0, 0, 0.5)')
-          .hitTestBehavior(HitTestMode.Transparent)
+          .hitTestBehavior(HitTestMode.Block)
           .onClick(() => {
             console.info('BottomSheet mask clicked, close');
             this.onClose();
           })
+          .zIndex(0)
 
         // 底部面板内容
         Column() {
@@ -35,7 +36,7 @@ export struct BottomSheet {
         .height(this.sheetHeight)
         .backgroundColor(this.bgColor)
         .borderRadius({ topLeft: 16, topRight: 16 })
-        .hitTestBehavior(HitTestMode.Block)
+        .zIndex(1)
       }
       .width('100%')
       .height('100%')

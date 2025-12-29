@@ -118,13 +118,7 @@ export struct DesktopLayout {
             visible: this.state.showConsole,
             logs: this.state.consoleLogs,
             isExecuting: this.state.isExecutingCode,
-            panelHeight: 300,
-            onClose: () => {
-              this.callbacks.onCloseConsole();
-            },
-            onClear: () => {
-              this.callbacks.onClearConsole();
-            }
+            panelHeight: 300
           })
 
           // 隐藏的 Web 组件

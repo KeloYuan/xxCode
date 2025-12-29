@@ -7,11 +7,11 @@
         "material": {
           "certpath": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001BE28089A151746F6FB3BD16998C1B9227C4677CF2271203B8D62735967FBF73537F9BD9924AC4C6",
+          "keyPassword": "0000001B1002EB68B81A7F9C869D9611E4CFDE2EAE1CC8A89A5B0968CB53BFD92449DAAC60CE30395E4AC2",
           "profile": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "/Users/xiaoyuan/.ohos/config/default_xxCode_-L4Vi-sLzl7JSUE2n7VOAtB4e-CwInQ57Advn4SG6oY=.p12",
-          "storePassword": "0000001B87DBA76702B9523170E539C8EAF3BE5E4D107D2512B6BEB84077252A3C2DF65CB5D69BE96F0547"
+          "storePassword": "0000001B6F8E677057459AF7E7B73BE097E61419D2192756D02910F535ADAD71152CB4C213FA9E87CA71ED"
         }
       },
       {
@@ -20,19 +20,32 @@
         "material": {
           "certpath": "/Users/xiaoyuan/StudioProjects/xxCode/id/code.cer",
           "keyAlias": "release",
-          "keyPassword": "0000001C714E6EC071100C5DDB99C1032D5E98C7637EC5D92A9C65CA62A66869C45999643FF660400D277D45",
+          "keyPassword": "0000001C100814FCBFCD5AD4237F4FE50E2D489D14DB19CE19798A95ABA8D533A968B21FC1F28ADBF87141F0",
           "profile": "/Users/xiaoyuan/StudioProjects/xxCode/id/1Release.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "/Users/xiaoyuan/StudioProjects/xxCode/id/ohkey1.p12",
-          "storePassword": "0000001CFABA045AD74D7B970D1E2DEB824F3EA30FB7268E24783C385E1F9AFB887E7F7A86908D6D44EDD370"
+          "storePassword": "0000001CAB4705C51D452CFC9223AA4CB8B2BF2351FF1B32A54264A35BA583501F5DB877B8A3411A2010EAE9"
+        }
+      },
+      {
+        "name": "zsyx",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/xiaoyuan/Documents/ohkey/zsyx/zsyx.cer",
+          "keyAlias": "release",
+          "keyPassword": "0000001C7F199B0AF53D0AEC65E67029D92D487B09754B8FE75A04FF3088D7DE76156DA07C4973DFC55A78F8",
+          "profile": "/Users/xiaoyuan/Documents/ohkey/zsyx/zsyxRelease.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/xiaoyuan/Documents/ohkey/zsyx/zsyx.p12",
+          "storePassword": "0000001C8DFC4366A19D2D64910863D182F20CBC5DA05DE6C6C99D9CAECBE20B022D00621CB6E3D89F55B970"
         }
       }
     ],
-    "products": [
+   "products": [
       {
         "name": "default",
-        "signingConfig": "release",
-        "targetSdkVersion": "5.0.0(12)",
+        "signingConfig": "zsyx", 
+        "targetSdkVersion": "5.1.0(18)",
         "compatibleSdkVersion": "5.0.0(12)",
         "runtimeOS": "HarmonyOS",
         "buildOption": {

@@ -72,13 +72,7 @@ export struct MobileLayout {
             visible: this.state.showConsole,
             logs: this.state.consoleLogs,
             isExecuting: this.state.isExecutingCode,
-            panelHeight: 300,
-            onClose: () => {
-              this.callbacks.onCloseConsole();
-            },
-            onClear: () => {
-              this.callbacks.onClearConsole();
-            }
+            panelHeight: 300
           })
 
           // 隐藏的 Web 组件
@@ -188,6 +182,8 @@ export struct MobileLayout {
           currentTabId: this.state.currentTabId,
           bgColor: this.state.currentTheme.colors.surface,
           textColor: this.state.currentTheme.colors.text,
+          activeColor: this.state.currentTheme.colors.primary,
+          dividerColor: this.state.currentTheme.colors.border,
           onTabClick: (tabId: string) => {
             this.callbacks.onTabClick(tabId);
             this.callbacks.onToggleTabManager(false);
@@ -197,13 +193,12 @@ export struct MobileLayout {
           },
           onNewTab: () => {
             this.callbacks.onNewTab();
-            this.callbacks.onToggleTabManager(false);
           }
         })
       }
 
       // 左边缘手势检测
-      if (this.state.showLeftDrawer === false && this.state.showTabManager === false) {
+      if (this.state.showLeftDrawer === false && this.state.showTabManager === false && this.state.showConsole === false) {
         Row()
           .width(28)
           .height('60%')
@@ -220,7 +215,7 @@ export struct MobileLayout {
       }
 
       // 右边缘手势检测
-      if (this.state.showRightDrawer === false && this.state.showTabManager === false) {
+      if (this.state.showRightDrawer === false && this.state.showTabManager === false && this.state.showConsole === false) {
         Row()
           .width(28)
           .height('60%')
@@ -251,66 +246,88 @@ export struct MobileLayout {
   buildMobileToolbar(): void {
     Row({ space: 8 }) {
       // 左侧: 文件按钮
-      Button($r('app.string.btn_files'))
-        .height(44)
-        .padding({ left: 12, right: 12 })
-        .fontSize(14)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.state.currentTheme.colors.text)
-        .backgroundColor(this.state.currentTheme.editor.background)
-        .borderRadius(10)
-        .border({ width: 1, color: this.state.currentTheme.colors.border })
-        .onClick(() => {
-          this.callbacks.onToggleLeftDrawer(true);
-        })
+      Row() {
+        Button($r('app.string.btn_files'))
+          .height(44)
+          .padding({ left: 12, right: 12 })
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.state.currentTheme.colors.text)
+          .backgroundColor(this.state.currentTheme.editor.background)
+          .borderRadius(10)
+          .border({ width: 1, color: this.state.currentTheme.colors.border })
+          .onClick(() => {
+            this.callbacks.onToggleLeftDrawer(true);
+          })
+      }
+      .width(this.getToolbarSideWidth())
+      .justifyContent(FlexAlign.Start)
 
       // 中间: 文件名 (点击打开标签管理)
-      Text(this.state.fileName + (this.state.isModified ? ' •' : ''))
-        .fontSize(15)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.state.currentTheme.colors.text)
-        .layoutWeight(1)
-        .textAlign(TextAlign.Center)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .onClick(() => {
-          this.callbacks.onToggleTabManager(true);
-        })
+      Row() {
+        Text(this.state.fileName + (this.state.isModified ? ' •' : ''))
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.state.currentTheme.colors.text)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .constraintSize({ maxWidth: this.getNameMaxWidth() })
+          .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+          .backgroundColor(this.state.currentTheme.editor.background)
+          .borderRadius(18)
+          .border({ width: 1, color: this.state.currentTheme.colors.border })
+      }
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
+      .onClick(() => {
+        this.callbacks.onToggleTabManager(true);
+      })
 
-      // 预览/编辑切换按钮
-      Button(this.state.isPreviewMode ? $r('app.string.btn_edit') : $r('app.string.btn_preview'))
-        .height(44)
-        .padding({ left: 12, right: 12 })
-        .fontSize(14)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.state.currentTheme.colors.text)
-        .backgroundColor(this.state.currentTheme.editor.background)
-        .borderRadius(10)
-        .border({ width: 1, color: this.state.currentTheme.colors.border })
-        .stateEffect(true)
-        .onClick(() => {
-          this.callbacks.onTogglePreviewMode();
-        })
+      // 右侧: 预览按钮 + 菜单按钮
+      Row({ space: 8 }) {
+        Button(this.state.isPreviewMode ? $r('app.string.btn_edit') : $r('app.string.btn_preview'))
+          .height(44)
+          .padding({ left: 12, right: 12 })
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.state.currentTheme.colors.text)
+          .backgroundColor(this.state.currentTheme.editor.background)
+          .borderRadius(10)
+          .border({ width: 1, color: this.state.currentTheme.colors.border })
+          .stateEffect(true)
+          .onClick(() => {
+            this.callbacks.onTogglePreviewMode();
+          })
 
-      // 右侧: 菜单按钮
-      Button('...')
-        .height(44)
-        .padding({ left: 12, right: 12 })
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.state.currentTheme.colors.text)
-        .backgroundColor(this.state.currentTheme.editor.background)
-        .borderRadius(10)
-        .border({ width: 1, color: this.state.currentTheme.colors.border })
-        .onClick(() => {
-          this.callbacks.onToggleRightDrawer(true);
-        })
+        Button($r('app.string.btn_menu'))
+          .height(44)
+          .padding({ left: 12, right: 12 })
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.state.currentTheme.colors.text)
+          .backgroundColor(this.state.currentTheme.editor.background)
+          .borderRadius(10)
+          .border({ width: 1, color: this.state.currentTheme.colors.border })
+          .onClick(() => {
+            this.callbacks.onToggleRightDrawer(true);
+          })
+      }
+      .width(this.getToolbarSideWidth())
+      .justifyContent(FlexAlign.End)
     }
     .width('100%')
     .height(56)
     .padding({ left: 8, right: 8 })
     .backgroundColor(this.state.currentTheme.colors.surface)
     .border({ width: { bottom: 0.5 }, color: this.state.currentTheme.colors.border })
+  }
+
+  private getNameMaxWidth(): number {
+    return this.breakpointService.isPhone() ? 200 : 260;
+  }
+
+  private getToolbarSideWidth(): number {
+    return this.breakpointService.isPhone() ? 120 : 160;
   }
 
   /**
@@ -328,21 +345,21 @@ export struct MobileLayout {
           activeColor: this.state.currentTheme.colors.primary,
           textColor: this.state.currentTheme.colors.text,
           btnSize: 48,
-          fontSize: 12,
+          fontSize: 16,
           onButtonClick: () => {
             this.callbacks.onToggleLeftDrawer(true);
           }
         })
         IconButton({
-          text: $r('app.string.btn_tabs'),
-          isActive: this.state.showTabManager,
+          text: $r('app.string.btn_run'),
+          isActive: false,
           bgColor: this.state.currentTheme.colors.surface,
           activeColor: this.state.currentTheme.colors.primary,
           textColor: this.state.currentTheme.colors.text,
           btnSize: 48,
-          fontSize: 12,
+          fontSize: 16,
           onButtonClick: () => {
-            this.callbacks.onToggleTabManager(true);
+            this.callbacks.onRunCode();
           }
         })
         IconButton({
@@ -352,7 +369,7 @@ export struct MobileLayout {
           activeColor: this.state.currentTheme.colors.primary,
           textColor: this.state.currentTheme.colors.text,
           btnSize: 48,
-          fontSize: 12,
+          fontSize: 16,
           onButtonClick: () => {
             this.callbacks.onToggleSearchBar();
           }
@@ -364,7 +381,7 @@ export struct MobileLayout {
           activeColor: this.state.currentTheme.colors.primary,
           textColor: this.state.currentTheme.colors.text,
           btnSize: 48,
-          fontSize: 12,
+          fontSize: 16,
           onButtonClick: () => {
             this.callbacks.onTogglePreviewMode();
           }
@@ -376,19 +393,9 @@ export struct MobileLayout {
           activeColor: this.state.currentTheme.colors.primary,
           textColor: this.state.currentTheme.colors.text,
           btnSize: 48,
-          fontSize: 12,
+          fontSize: 16,
           onButtonClick: () => {
             this.callbacks.onSaveFile();
-          }
-        })
-        IconButton({
-          text: $r('app.string.btn_menu'),
-          bgColor: this.state.currentTheme.colors.surface,
-          textColor: this.state.currentTheme.colors.text,
-          btnSize: 48,
-          fontSize: 12,
-          onButtonClick: () => {
-            this.callbacks.onToggleRightDrawer(true);
           }
         })
       }
@@ -401,6 +408,15 @@ export struct MobileLayout {
     .height(64)
     .backgroundColor(this.state.currentTheme.colors.surface)
     .border({ width: { top: 0.5 }, color: this.state.currentTheme.colors.border })
+    .borderRadius(18)
+    .clip(true)
+    .margin({ left: 12, right: 12, bottom: 12 })
+    .shadow({
+      radius: 16,
+      color: 'rgba(0, 0, 0, 0.18)',
+      offsetX: 0,
+      offsetY: 6
+    })
   }
 
   /**

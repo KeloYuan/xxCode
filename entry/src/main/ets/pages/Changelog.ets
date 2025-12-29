@@ -28,23 +28,15 @@ struct Changelog {
   private themeService: ThemeService = ThemeService.getInstance();
   private releases: ReleaseNote[] = [
     {
-      version: '3.0.0',
-      date: '2025-01-10',
-      highlight: '大型更新',
+      version: '4.0.0',
+      date: '2025-12-29',
+      highlight: '重大版本更新',
       items: [
-        '新增学习模式、模板库、最近项目与帮助页面',
-        '设置页扩展主题与外观，新增行高/行号开关',
-        '编辑器稳定性与交互体验提升'
-      ]
-    },
-    {
-      version: '2.1.0',
-      date: '2025-01-05',
-      highlight: '学习模式上线',
-      items: [
-        '新增学习模式页面与示例文件',
-        '模板库页支持预览与一键插入',
-        '设置页增加主题与外观区'
+        '全新响应式布局架构，完美适配移动端与桌面端',
+        '新增代码执行服务，支持实时运行代码',
+        '优化编辑器性能与交互体验',
+        '新增多主题支持，实时切换',
+        '文件管理功能全面升级'
       ]
     }
   ];

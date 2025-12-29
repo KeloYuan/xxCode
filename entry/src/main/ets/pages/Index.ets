@@ -78,7 +78,7 @@ struct Index {
   }
 
   private animateSteps() {
-    const delays = [0, 200, 500, 900];
+    const delays = [0, 200, 500, 800];
     for (let i = 0; i <= 3; i++) {
       setTimeout(() => {
         this.currentStep = i;
@@ -88,20 +88,26 @@ struct Index {
 
   build() {
     Stack() {
-      // === 鸿蒙风格渐变背景 ===
+      // === 简洁渐变背景 ===
       Column()
         .width('100%')
         .height('100%')
         .linearGradient({
           angle: 145,
           colors: [
-            ['#0A59F7', 0.0],    // 鸿蒙蓝
-            ['#0091FF', 0.4],    // 天空蓝
-            ['#5B8FF9', 0.7],    // 浅蓝
-            ['#7C3AED', 1.0]     // 紫色点缀
+            ['#1a1a2e', 0.0],
+            ['#16213e', 0.5],
+            ['#0f3460', 1.0]
           ]
         })
-        .opacity(0.95)
+
+      // === 微妙的光晕效果 ===
+      Circle()
+        .width(400)
+        .height(400)
+        .fill('rgba(99, 102, 241, 0.08)')
+        .position({ x: '70%', y: '15%' })
+        .blur(100)
 
       if (this.isLoading) {
         // 加载中显示
@@ -110,21 +116,6 @@ struct Index {
           .height(64)
           .color(Color.White)
       } else {
-        // 简化的装饰效果
-        Circle()
-          .width(300)
-          .height(300)
-          .fill('rgba(255, 255, 255, 0.08)')
-          .position({ x: '80%', y: '10%' })
-          .blur(60)
-
-        Circle()
-          .width(200)
-          .height(200)
-          .fill('rgba(255, 255, 255, 0.06)')
-          .position({ x: '10%', y: '75%' })
-          .blur(50)
-
         // 主内容区
         this.buildMainContent()
       }
@@ -169,64 +160,60 @@ struct Index {
 
   @Builder
   buildHeroSection(): void {
-    Column({ space: 24 }) {
-      // Logo 符号 - 简化设计
-      Column() {
-        Text('<>')
-          .fontSize(this.breakpointService.isPhone() ? 48 : 56)
-          .fontColor('#FFFFFF')
-          .fontWeight(FontWeight.Bold)
-          .fontFamily('SF Mono, Monaco, Menlo, Consolas, monospace')
-          .letterSpacing(2)
-          .scale({ x: this.currentStep >= 0 ? 1 : 0.3, y: this.currentStep >= 0 ? 1 : 0.3 })
-          .opacity(this.currentStep >= 0 ? 1 : 0)
-          .rotate({ angle: this.currentStep >= 0 ? 0 : 180 })
-          .animation({
-            duration: 700,
-            curve: curves.springMotion(0.6, 0.9),
-            delay: 150
-          })
-      }
-      .width(this.breakpointService.isPhone() ? 90 : 100)
-      .height(this.breakpointService.isPhone() ? 90 : 100)
-      .backgroundColor('rgba(255, 255, 255, 0.10)')
-      .backdropBlur(15)
-      .borderRadius(24)
-      .justifyContent(FlexAlign.Center)
-      .margin({ bottom: 24 })
+    Column({ space: 20 }) {
+      // Logo 图片
+      Image($r('app.media.app_logo'))
+        .width(this.breakpointService.isPhone() ? 100 : 120)
+        .height(this.breakpointService.isPhone() ? 100 : 120)
+        .objectFit(ImageFit.Cover)
+        .borderRadius(28)
+        .clip(true)
+        .shadow({
+          radius: 40,
+          color: 'rgba(99, 102, 241, 0.3)',
+          offsetY: 0
+        })
+        .scale({ x: this.currentStep >= 0 ? 1 : 0.85, y: this.currentStep >= 0 ? 1 : 0.85 })
+        .opacity(this.currentStep >= 0 ? 1 : 0)
+        .animation({
+          duration: 800,
+          curve: curves.springMotion(0.7, 0.95),
+          delay: 200
+        })
+        .margin({ bottom: 28 })
 
-      // 主标题 - 简化
-      Text($r('app.string.app_name'))
+      // 主标题
+      Text('元代码')
         .fontSize(this.breakpointService.isPhone() ? 36 : 44)
         .fontColor('#FFFFFF')
-        .fontWeight(FontWeight.Bold)
+        .fontWeight(FontWeight.Medium)
         .textAlign(TextAlign.Center)
-        .letterSpacing(2)
-        .scale({ x: this.currentStep >= 1 ? 1 : 0.9, y: this.currentStep >= 1 ? 1 : 0.9 })
+        .letterSpacing(4)
+        .scale({ x: this.currentStep >= 1 ? 1 : 0.95, y: this.currentStep >= 1 ? 1 : 0.95 })
         .opacity(this.currentStep >= 1 ? 1 : 0)
         .animation({
           duration: 700,
-          curve: curves.springMotion(0.6, 0.9),
+          curve: curves.springMotion(0.7, 0.95),
           delay: 350
         })
 
       // 副标题
       Text($r('app.string.app_slogan'))
-        .fontSize(this.breakpointService.isPhone() ? 15 : 18)
-        .fontColor('rgba(255, 255, 255, 0.85)')
+        .fontSize(this.breakpointService.isPhone() ? 14 : 16)
+        .fontColor('rgba(255, 255, 255, 0.65)')
         .fontWeight(FontWeight.Regular)
         .textAlign(TextAlign.Center)
-        .letterSpacing(2)
-        .scale({ x: this.currentStep >= 1 ? 1 : 0.9, y: this.currentStep >= 1 ? 1 : 0.9 })
+        .letterSpacing(1)
+        .scale({ x: this.currentStep >= 1 ? 1 : 0.95, y: this.currentStep >= 1 ? 1 : 0.95 })
         .opacity(this.currentStep >= 1 ? 1 : 0)
         .animation({
           duration: 700,
-          curve: curves.springMotion(0.6, 0.9),
-          delay: 450
+          curve: curves.springMotion(0.7, 0.95),
+          delay: 420
         })
     }
     .width('100%')
-    .margin({ bottom: 72 })
+    .margin({ bottom: 60 })
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
   }
@@ -257,72 +244,78 @@ struct Index {
   @Builder
   buildFeatureCard(icon: string, title: ResourceStr, description: ResourceStr, index: number): void {
     Column() {
-      // 图标 - 简化
+      // 简洁图标
       Text(icon)
-        .fontSize(this.breakpointService.isPhone() ? 36 : 42)
+        .fontSize(40)
         .margin({ bottom: 16 })
 
       Text(title)
-        .fontSize(ResponsiveUtils.getFontSize({ xs: 16, sm: 17, md: 18, lg: 19, xl: 20 }))
-        .fontWeight(FontWeight.Bold)
+        .fontSize(ResponsiveUtils.getFontSize({ xs: 16, sm: 17, md: 18, lg: 18, xl: 19 }))
+        .fontWeight(FontWeight.Medium)
         .fontColor('#FFFFFF')
-        .margin({ bottom: 10 })
+        .margin({ bottom: 8 })
 
       Text(description)
-        .fontSize(ResponsiveUtils.getFontSize({ xs: 13, sm: 14, md: 14, lg: 15, xl: 15 }))
-        .fontColor('rgba(255, 255, 255, 0.75)')
+        .fontSize(ResponsiveUtils.getFontSize({ xs: 12, sm: 13, md: 13, lg: 14, xl: 14 }))
+        .fontColor('rgba(255, 255, 255, 0.6)')
         .fontWeight(FontWeight.Regular)
         .textAlign(TextAlign.Center)
         .maxLines(2)
-        .lineHeight(22)
+        .lineHeight(20)
+        .padding({ left: 8, right: 8 })
     }
     .width('100%')
-    .height(this.breakpointService.isPhone() ? 170 : 190)
-    .padding(this.breakpointService.isPhone() ? 24 : 28)
-    .backgroundColor('rgba(255, 255, 255, 0.10)')
-    .backdropBlur(30)
-    .borderRadius(this.breakpointService.isLargeScreen() ? 24 : 20)
+    .height(this.breakpointService.isPhone() ? 160 : 170)
+    .padding(this.breakpointService.isPhone() ? 20 : 24)
+    .backgroundColor('rgba(255, 255, 255, 0.05)')
+    .backdropBlur(10)
+    .borderRadius(20)
     .border({
       width: 1,
-      color: 'rgba(255, 255, 255, 0.20)'
+      color: 'rgba(255, 255, 255, 0.08)'
     })
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
-    .scale({ x: this.currentStep >= 2 ? 1 : 0.9, y: this.currentStep >= 2 ? 1 : 0.9 })
+    .scale({ x: this.currentStep >= 2 ? 1 : 0.92, y: this.currentStep >= 2 ? 1 : 0.92 })
     .opacity(this.currentStep >= 2 ? 1 : 0)
     .translate({ y: this.currentStep >= 2 ? 0 : 20 })
     .animation({
       duration: 700,
-      curve: curves.springMotion(0.6, 0.9),
-      delay: 550 + index * 100
+      curve: curves.springMotion(0.7, 0.95),
+      delay: 500 + index * 80
     })
   }
 
   @Builder
   buildCTASection(): void {
-    Column({ space: 16 }) {
-      // 主按钮 - 简化
+    Column({ space: 24 }) {
+      // 主按钮 - 简洁设计
       Button({ type: ButtonType.Normal }) {
         Row({ space: 10 }) {
-          Text('✨')
-            .fontSize(20)
-          
           Text($r('app.string.btn_start_coding'))
-            .fontSize(17)
+            .fontSize(16)
             .fontWeight(FontWeight.Medium)
+
+          Text('→')
+            .fontSize(14)
         }
       }
       .width(this.breakpointService.isPhone() ? '80%' : 280)
-      .height(56)
-      .backgroundColor('#FFFFFF')
-      .fontColor('#0A59F7')
-      .borderRadius(28)
-      .scale({ x: this.currentStep >= 3 ? 1 : 0.9, y: this.currentStep >= 3 ? 1 : 0.9 })
+      .height(52)
+      .backgroundColor('rgba(255, 255, 255, 0.95)')
+      .fontColor('#1a1a2e')
+      .borderRadius(26)
+      .shadow({
+        radius: 20,
+        color: 'rgba(0, 0, 0, 0.15)',
+        offsetY: 6
+      })
+      .scale({ x: this.currentStep >= 3 ? 1 : 0.92, y: this.currentStep >= 3 ? 1 : 0.92 })
       .opacity(this.currentStep >= 3 ? 1 : 0)
       .animation({
         duration: 700,
-        curve: curves.springMotion(0.6, 0.9),
-        delay: 900
+        curve: curves.springMotion(0.7, 0.95),
+        delay: 800
       })
       .stateEffect(true)
       .onClick(async () => {
@@ -330,6 +323,35 @@ struct Index {
         router.pushUrl({
           url: 'pages/CodeEditor'
         }, router.RouterMode.Single);
+      })
+
+      // 底部信息
+      Row({ space: 16 }) {
+        Text('v4.0.0')
+          .fontSize(11)
+          .fontColor('rgba(255, 255, 255, 0.4)')
+
+        Text('•')
+          .fontSize(11)
+          .fontColor('rgba(255, 255, 255, 0.3)')
+
+        Text('鸿蒙原生')
+          .fontSize(11)
+          .fontColor('rgba(255, 255, 255, 0.4)')
+
+        Text('•')
+          .fontSize(11)
+          .fontColor('rgba(255, 255, 255, 0.3)')
+
+        Text('开源')
+          .fontSize(11)
+          .fontColor('rgba(255, 255, 255, 0.4)')
+      }
+      .opacity(this.currentStep >= 3 ? 0.7 : 0)
+      .animation({
+        duration: 700,
+        curve: curves.springMotion(0.7, 0.95),
+        delay: 950
       })
     }
     .width('100%')

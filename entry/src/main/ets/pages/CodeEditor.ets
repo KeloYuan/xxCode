@@ -233,7 +233,9 @@ struct CodeEditor {
     this.handlePendingTemplate();
     
     // 创建默认标签
-    this.createNewTab();
+    if (this.tabs.length === 0) {
+      this.createNewTab();
+    }
     
     // 注册断点系统
     this.breakpointService.register();
@@ -1345,7 +1347,7 @@ struct CodeEditor {
       '',
       'text'
     );
-    this.tabs.push(newTab);
+    this.tabs = [...this.tabs, newTab];
     this.switchToTab(newTab.id);
   }
 

@@ -18,6 +18,7 @@ export struct TabBar {
   onTabClose?: (tabId: string) => void;
 
   @State private hoveredTab: string = '';
+  @State private pressedTab: string = '';
   @State private barWidth: number = 0;
   private scroller: Scroller = new Scroller();
   private springCurve: ICurve = curves.springMotion(0.6, 0.9);
@@ -187,10 +188,14 @@ export struct TabBar {
     .backgroundColor(tab.id === this.currentTabId ?
       this.activeTabBgColor : (this.hoveredTab === tab.id ?
         'rgba(255, 255, 255, 0.05)' : Color.Transparent))
+    .border({
+      width: tab.id === this.currentTabId ? 0 : 0.5,
+      color: tab.id === this.currentTabId ? this.activeTabBgColor : this.tabBorderColor
+    })
     .borderRadius(10)
     .scale({
-      x: this.hoveredTab === tab.id ? 1.02 : 1,
-      y: this.hoveredTab === tab.id ? 1.02 : 1
+      x: this.hoveredTab === tab.id ? 1.02 : (this.pressedTab === tab.id ? 0.98 : 1),
+      y: this.hoveredTab === tab.id ? 1.02 : (this.pressedTab === tab.id ? 0.98 : 1)
     })
     .shadow(tab.id === this.currentTabId ? {
       radius: 8,
@@ -202,6 +207,11 @@ export struct TabBar {
       duration: this.STANDARD_DURATION,
       curve: this.springCurve
     })
+    .transition(
+      TransitionEffect.OPACITY.animation({ duration: 180, curve: Curve.EaseOut })
+        .combine(TransitionEffect.translate({ y: 6 }))
+        .combine(TransitionEffect.scale({ x: 0.96, y: 0.96 }))
+    )
     .onHover((isHover: boolean) => {
       animateTo({
         duration: this.STANDARD_DURATION,
@@ -209,6 +219,13 @@ export struct TabBar {
       }, () => {
         this.hoveredTab = isHover ? tab.id : '';
       });
+    })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.pressedTab = tab.id;
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.pressedTab = '';
+      }
     })
     .onClick(() => {
       if (this.onTabClick) {

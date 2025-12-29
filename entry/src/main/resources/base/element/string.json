@@ -85,6 +85,10 @@
       "value": "标签"
     },
     {
+      "name": "btn_run",
+      "value": "运行"
+    },
+    {
       "name": "btn_hide",
       "value": "隐藏"
     },
