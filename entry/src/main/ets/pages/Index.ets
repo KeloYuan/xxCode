@@ -243,39 +243,77 @@ struct Index {
 
   @Builder
   buildFeatureCard(icon: string, title: ResourceStr, description: ResourceStr, index: number): void {
-    Column() {
-      // 简洁图标
-      Text(icon)
-        .fontSize(40)
-        .margin({ bottom: 16 })
+    Stack() {
+      // 液态玻璃卡片主体
+      Column() {
+        // 简洁图标
+        Text(icon)
+          .fontSize(40)
+          .margin({ bottom: 16 })
 
-      Text(title)
-        .fontSize(ResponsiveUtils.getFontSize({ xs: 16, sm: 17, md: 18, lg: 18, xl: 19 }))
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#FFFFFF')
-        .margin({ bottom: 8 })
+        Text(title)
+          .fontSize(ResponsiveUtils.getFontSize({ xs: 16, sm: 17, md: 18, lg: 18, xl: 19 }))
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#FFFFFF')
+          .margin({ bottom: 8 })
 
-      Text(description)
-        .fontSize(ResponsiveUtils.getFontSize({ xs: 12, sm: 13, md: 13, lg: 14, xl: 14 }))
-        .fontColor('rgba(255, 255, 255, 0.6)')
-        .fontWeight(FontWeight.Regular)
-        .textAlign(TextAlign.Center)
-        .maxLines(2)
-        .lineHeight(20)
-        .padding({ left: 8, right: 8 })
+        Text(description)
+          .fontSize(ResponsiveUtils.getFontSize({ xs: 12, sm: 13, md: 13, lg: 14, xl: 14 }))
+          .fontColor('rgba(255, 255, 255, 0.6)')
+          .fontWeight(FontWeight.Regular)
+          .textAlign(TextAlign.Center)
+          .maxLines(2)
+          .lineHeight(20)
+          .padding({ left: 8, right: 8 })
+      }
+      .width('100%')
+      .height('100%')
+      .padding(this.breakpointService.isPhone() ? 20 : 24)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+
+      // 内部高光层 - 模拟玻璃反光
+      Column()
+        .width('100%')
+        .height('100%')
+        .borderRadius(20)
+        .linearGradient({
+          angle: 135,
+          colors: [
+            ['rgba(255, 255, 255, 0.15)', 0.0],
+            ['rgba(255, 255, 255, 0.02)', 0.3],
+            ['rgba(255, 255, 255, 0)', 0.5],
+            ['rgba(255, 255, 255, 0.02)', 0.7],
+            ['rgba(255, 255, 255, 0)', 1.0]
+          ]
+        })
+        .hitTestBehavior(HitTestMode.None)
     }
     .width('100%')
     .height(this.breakpointService.isPhone() ? 160 : 170)
-    .padding(this.breakpointService.isPhone() ? 20 : 24)
-    .backgroundColor('rgba(255, 255, 255, 0.05)')
-    .backdropBlur(10)
-    .borderRadius(20)
+    // 液态玻璃效果 - 分层背景
+    .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
+    .backgroundColor('rgba(255, 255, 255, 0.08)')
+    .backdropBlur(25)
+    .borderRadius(24)
+    // 多层边框模拟玻璃边缘
     .border({
-      width: 1,
-      color: 'rgba(255, 255, 255, 0.08)'
+      width: 1.5,
+      color: 'rgba(255, 255, 255, 0.18)'
     })
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
+    .shadow({
+      radius: 32,
+      color: 'rgba(0, 0, 0, 0.25)',
+      offsetX: 0,
+      offsetY: 8
+    })
+    // 内发光效果
+    .shadow({
+      radius: 16,
+      color: 'rgba(255, 255, 255, 0.08)',
+      offsetX: 0,
+      offsetY: -4
+    })
     .scale({ x: this.currentStep >= 2 ? 1 : 0.92, y: this.currentStep >= 2 ? 1 : 0.92 })
     .opacity(this.currentStep >= 2 ? 1 : 0)
     .translate({ y: this.currentStep >= 2 ? 0 : 20 })
@@ -289,27 +327,61 @@ struct Index {
   @Builder
   buildCTASection(): void {
     Column({ space: 24 }) {
-      // 主按钮 - 简洁设计
-      Button({ type: ButtonType.Normal }) {
-        Row({ space: 10 }) {
-          Text($r('app.string.btn_start_coding'))
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
+      // 主按钮 - 液态玻璃效果
+      Stack() {
+        Button({ type: ButtonType.Normal }) {
+          Row({ space: 10 }) {
+            Text($r('app.string.btn_start_coding'))
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
 
-          Text('→')
-            .fontSize(14)
+            Text('→')
+              .fontSize(14)
+          }
         }
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(255, 255, 255, 0.92)')
+        .fontColor('#1a1a2e')
+        .borderRadius(26)
+        // 液态玻璃阴影
+        .shadow({
+          radius: 28,
+          color: 'rgba(0, 0, 0, 0.2)',
+          offsetX: 0,
+          offsetY: 8
+        })
+        .shadow({
+          radius: 12,
+          color: 'rgba(99, 102, 241, 0.3)',
+          offsetX: 0,
+          offsetY: 0
+        })
+        .stateEffect(true)
+        .onClick(async () => {
+          await this.markWelcomeShown();
+          router.pushUrl({
+            url: 'pages/CodeEditor'
+          }, router.RouterMode.Single);
+        })
+
+        // 按钮高光层
+        Column()
+          .width('100%')
+          .height('100%')
+          .borderRadius(26)
+          .linearGradient({
+            angle: 135,
+            colors: [
+              ['rgba(255, 255, 255, 0.6)', 0.0],
+              ['rgba(255, 255, 255, 0.1)', 0.4],
+              ['rgba(255, 255, 255, 0)', 1.0]
+            ]
+          })
+          .hitTestBehavior(HitTestMode.None)
       }
       .width(this.breakpointService.isPhone() ? '80%' : 280)
       .height(52)
-      .backgroundColor('rgba(255, 255, 255, 0.95)')
-      .fontColor('#1a1a2e')
-      .borderRadius(26)
-      .shadow({
-        radius: 20,
-        color: 'rgba(0, 0, 0, 0.15)',
-        offsetY: 6
-      })
       .scale({ x: this.currentStep >= 3 ? 1 : 0.92, y: this.currentStep >= 3 ? 1 : 0.92 })
       .opacity(this.currentStep >= 3 ? 1 : 0)
       .animation({
@@ -317,37 +389,39 @@ struct Index {
         curve: curves.springMotion(0.7, 0.95),
         delay: 800
       })
-      .stateEffect(true)
-      .onClick(async () => {
-        await this.markWelcomeShown();
-        router.pushUrl({
-          url: 'pages/CodeEditor'
-        }, router.RouterMode.Single);
-      })
 
-      // 底部信息
+      // 底部信息 - 液态玻璃容器
       Row({ space: 16 }) {
         Text('v4.0.0')
           .fontSize(11)
-          .fontColor('rgba(255, 255, 255, 0.4)')
+          .fontColor('rgba(255, 255, 255, 0.5)')
 
         Text('•')
           .fontSize(11)
-          .fontColor('rgba(255, 255, 255, 0.3)')
+          .fontColor('rgba(255, 255, 255, 0.35)')
 
         Text('鸿蒙原生')
           .fontSize(11)
-          .fontColor('rgba(255, 255, 255, 0.4)')
+          .fontColor('rgba(255, 255, 255, 0.5)')
 
         Text('•')
           .fontSize(11)
-          .fontColor('rgba(255, 255, 255, 0.3)')
+          .fontColor('rgba(255, 255, 255, 0.35)')
 
         Text('开源')
           .fontSize(11)
-          .fontColor('rgba(255, 255, 255, 0.4)')
+          .fontColor('rgba(255, 255, 255, 0.5)')
       }
-      .opacity(this.currentStep >= 3 ? 0.7 : 0)
+      .padding({ left: 20, right: 20, top: 10, bottom: 10 })
+      .backgroundBlurStyle(BlurStyle.COMPONENT_THICK)
+      .backgroundColor('rgba(255, 255, 255, 0.06)')
+      .backdropBlur(15)
+      .borderRadius(16)
+      .border({
+        width: 1,
+        color: 'rgba(255, 255, 255, 0.12)'
+      })
+      .opacity(this.currentStep >= 3 ? 0.8 : 0)
       .animation({
         duration: 700,
         curve: curves.springMotion(0.7, 0.95),

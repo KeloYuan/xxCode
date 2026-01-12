@@ -1,6 +1,6 @@
 /**
  * 元代码 用户协议页面
- * 首次启动时显示，同意后不再显示
+ * 首次启动时显示，同意后不再显示 - 液态玻璃设计
  */
 import { router, window, curves } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
@@ -16,27 +16,27 @@ struct Agreement {
     PageTransitionExit({ duration: 240, curve: Curve.EaseIn })
       .slide(SlideEffect.Right)
   }
-  
+
   @State isAgreed: boolean = false;
   @State isLoading: boolean = true;
   @StorageProp('topRectHeight') topRectHeight: number = 0;
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0;
-  
+
   private context: common.UIAbilityContext | null = null;
   private dataPreferences: preferences.Preferences | null = null;
 
   async aboutToAppear() {
     this.context = this.getUIContext().getHostContext() as common.UIAbilityContext;
-    
+
     // 设置状态栏文字为深色（因为背景是浅色）
     this.setStatusBarStyle(false);
-    
+
     try {
       // 获取首选项存储
       this.dataPreferences = await preferences.getPreferences(this.context, 'user_settings');
       // 检查是否已同意协议
       const agreed = await this.dataPreferences.get('agreement_accepted', false);
-      
+
       if (agreed) {
         // 已同意，直接跳转到首页
         router.pushUrl({ url: 'pages/Index' }, router.RouterMode.Single);
@@ -45,7 +45,7 @@ struct Agreement {
     } catch (err) {
       console.error('读取首选项失败:', JSON.stringify(err));
     }
-    
+
     this.isLoading = false;
   }
 
@@ -63,7 +63,35 @@ struct Agreement {
   }
 
   build() {
-    Column() {
+    Stack() {
+      // 渐变背景
+      Column()
+        .width('100%')
+        .height('100%')
+        .linearGradient({
+          angle: 145,
+          colors: [
+            ['#e0e7ff', 0.0],
+            ['#f3e8ff', 0.5],
+            ['#fce7f3', 1.0]
+          ]
+        })
+
+      // 装饰性光晕
+      Circle()
+        .width(300)
+        .height(300)
+        .fill('rgba(99, 102, 241, 0.08)')
+        .position({ x: '80%', y: '10%' })
+        .blur(80)
+
+      Circle()
+        .width(250)
+        .height(250)
+        .fill('rgba(236, 72, 153, 0.06)')
+        .position({ x: '10%', y: '70%' })
+        .blur(60)
+
       if (this.isLoading) {
         // 加载中
         Column() {
@@ -82,80 +110,167 @@ struct Agreement {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-    .padding({ top: this.topRectHeight / 3, bottom: this.bottomRectHeight / 3 })
   }
 
   @Builder
   buildContent(): void {
-    Column() {
-      // 标题
-      Column({ space: 8 }) {
-        Text('📜')
-          .fontSize(48)
-        Text('用户协议与隐私政策')
-          .fontSize(22)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-      }
-      .margin({ top: 40, bottom: 24 })
-
-      // 协议内容滚动区
-      Scroll() {
+    Scroll() {
+      Column() {
+        // 液态玻璃卡片容器
         Column() {
-          Text(this.getAgreementText())
-            .fontSize(14)
-            .fontColor('#666666')
-            .lineHeight(24)
-            .padding(20)
+          // 标题区
+          Column({ space: 12 }) {
+            Stack() {
+              // 图标背景光晕
+              Circle()
+                .width(90)
+                .height(90)
+                .fill('rgba(99, 102, 241, 0.12)')
+                .blur(20)
+
+              Text('📜')
+                .fontSize(42)
+            }
+
+            Text('用户协议与隐私政策')
+              .fontSize(24)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#1a1a2e')
+
+            Text('请仔细阅读以下条款')
+              .fontSize(13)
+              .fontColor('rgba(26, 26, 46, 0.6)')
+          }
+          .margin({ top: 20, bottom: 24 })
+          .alignItems(HorizontalAlign.Center)
+
+          // 协议内容区 - 液态玻璃卡片
+          Column() {
+            Scroll() {
+              Text(this.getAgreementText())
+                .fontSize(14)
+                .fontColor('#334155')
+                .lineHeight(26)
+                .padding(20)
+            }
+            .width('100%')
+            .layoutWeight(1)
+            .scrollBar(BarState.Auto)
+          }
+          .width('100%')
+          .height(320)
+          .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
+          .backgroundColor('rgba(255, 255, 255, 0.65)')
+          .backdropBlur(20)
+          .borderRadius(20)
+          .border({
+            width: 1,
+            color: 'rgba(255, 255, 255, 0.8)'
+          })
+          .shadow({
+            radius: 24,
+            color: 'rgba(99, 102, 241, 0.15)',
+            offsetX: 0,
+            offsetY: 8
+          })
+          .margin({ bottom: 20 })
+
+          // 同意勾选区 - 液态玻璃
+          Row({ space: 12 }) {
+            Stack() {
+              Column()
+                .width(44)
+                .height(44)
+                .backgroundBlurStyle(BlurStyle.COMPONENT_THICK)
+                .backgroundColor('rgba(255, 255, 255, 0.5)')
+                .backdropBlur(15)
+                .borderRadius(12)
+                .border({
+                  width: 1,
+                  color: 'rgba(255, 255, 255, 0.6)'
+                })
+
+              Checkbox()
+                .width(24)
+                .height(24)
+                .select(this.isAgreed)
+                .selectedColor('#667eea')
+                .onChange((value: boolean) => {
+                  this.isAgreed = value;
+                })
+            }
+
+            Text('我已阅读并同意以上协议')
+              .fontSize(14)
+              .fontColor('#334155')
+              .fontWeight(FontWeight.Medium)
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12 })
+          .margin({ bottom: 20 })
+
+          // 同意按钮 - 液态玻璃
+          Stack() {
+            Button('同意并继续')
+              .width('100%')
+              .height('100%')
+              .fontSize(17)
+              .fontWeight(FontWeight.Medium)
+              .backgroundColor(this.isAgreed ? '#667eea' : 'rgba(203, 213, 225, 0.8)')
+              .fontColor(this.isAgreed ? '#FFFFFF' : 'rgba(148, 163, 184, 0.8)')
+              .borderRadius(26)
+              .enabled(this.isAgreed)
+              .opacity(this.isAgreed ? 1 : 0.7)
+              .shadow({
+                radius: this.isAgreed ? 20 : 0,
+                color: 'rgba(99, 102, 241, 0.4)',
+                offsetX: 0,
+                offsetY: this.isAgreed ? 6 : 0
+              })
+              .onClick(() => {
+                this.acceptAgreement();
+              })
+
+            // 按钮高光层
+            if (this.isAgreed) {
+              Column()
+                .width('100%')
+                .height('100%')
+                .borderRadius(26)
+                .linearGradient({
+                  angle: 135,
+                  colors: [
+                    ['rgba(255, 255, 255, 0.3)', 0.0],
+                    ['rgba(255, 255, 255, 0.05)', 0.5],
+                    ['rgba(255, 255, 255, 0)', 1.0]
+                  ]
+                })
+                .hitTestBehavior(HitTestMode.None)
+            }
+          }
+          .width('85%')
+          .height(52)
+
+          // 底部提示 - 液态玻璃标签
+          Text('点击"同意并继续"即表示您同意上述条款')
+            .fontSize(12)
+            .fontColor('rgba(99, 102, 241, 0.7)')
+            .margin({ top: 16, bottom: 40 })
+            .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+            .backgroundBlurStyle(BlurStyle.COMPONENT_THICK)
+            .backgroundColor('rgba(255, 255, 255, 0.4)')
+            .backdropBlur(10)
+            .borderRadius(12)
         }
         .width('100%')
+        .padding({ left: 24, right: 24, top: this.topRectHeight / 3 + 20, bottom: this.bottomRectHeight / 3 + 20 })
       }
-      .layoutWeight(1)
-      .width('90%')
-      .backgroundColor(Color.White)
-      .borderRadius(12)
-      .margin({ bottom: 20 })
-
-      // 同意勾选
-      Row() {
-        Checkbox()
-          .select(this.isAgreed)
-          .selectedColor('#667eea')
-          .onChange((value: boolean) => {
-            this.isAgreed = value;
-          })
-        
-        Text('我已阅读并同意以上协议')
-          .fontSize(14)
-          .fontColor('#333333')
-          .margin({ left: 8 })
-      }
-      .margin({ bottom: 20 })
-
-      // 同意按钮
-      Button('同意并继续')
-        .width('80%')
-        .height(50)
-        .fontSize(17)
-        .fontWeight(FontWeight.Medium)
-        .backgroundColor(this.isAgreed ? '#667eea' : '#CCCCCC')
-        .borderRadius(25)
-        .enabled(this.isAgreed)
-        .onClick(() => {
-          this.acceptAgreement();
-        })
-      
-      // 底部提示
-      Text('点击"同意并继续"即表示您同意上述条款')
-        .fontSize(12)
-        .fontColor('#999999')
-        .margin({ top: 12, bottom: 30 })
+      .width('100%')
+      .height('100%')
     }
     .width('100%')
     .height('100%')
-    .alignItems(HorizontalAlign.Center)
   }
 
   /**
