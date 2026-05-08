@@ -1,150 +1,149 @@
-# 鸿蒙原生代码编辑器
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1117,50:1a1b26,100:0d1117&height=200&section=header&text=xxCode&fontSize=50&fontColor=9ece6a&fontAlignY=40&desc=Native%20HarmonyOS%20Lightweight%20Code%20Editor&descSize=16&descAlignY=60&descAlign=50&animation=fadeIn" width="100%" />
+</p>
 
-## 项目介绍
+<p align="center">
+  <a href="https://github.com/KeloYuan/xxCode/stargazers"><img src="https://img.shields.io/github/stars/KeloYuan/xxCode?style=for-the-badge&color=e0af68" /></a>
+  <a href="https://github.com/KeloYuan/xxCode/blob/main/LICENSE"><img src="https://img.shields.io/github/license/KeloYuan/xxCode?style=for-the-badge&color=9ece6a" /></a>
+  <img src="https://img.shields.io/badge/HarmonyOS-5.0+-000?style=for-the-badge&logo=huawei&logoColor=white" />
+  <img src="https://img.shields.io/badge/ArkTS-Powered-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Platform-Phone%20%7C%20Tablet%20%7C%202-in--1-brightgreen?style=for-the-badge" />
+</p>
 
-这是一个专为鸿蒙5系统设计的原生代码编辑器应用，融合了代码编辑器和笔记本的特性，为开发者提供流畅、高效的编程体验。
-
-## 功能特性
-
-### 核心功能
-- ✅ **多标签页支持** - 同时打开多个文件进行编辑
-- ✅ **文件树导航** - 树状结构展示项目文件，支持文件夹展开/折叠
-- ✅ **语法高亮** - 支持主流编程语言（JavaScript、TypeScript、Python、Java、C++、Go、Rust等）
-- ✅ **Markdown实时预览** - 智能检测Markdown文件，提供实时预览功能
-- ✅ **主题切换** - 支持浅色、深色、鸿蒙三种主题
-- ✅ **全文搜索** - 支持搜索文件内容和文件名，带搜索建议
-- ✅ **代码格式化** - 智能代码格式化和缩进管理
-
-### 技术特性
-- 🏗️ **原生鸿蒙体验** - 深度集成鸿蒙系统能力，使用原生组件
-- ⚡ **高性能** - 基于鸿蒙原生技术栈，追求极致性能
-- 🎨 **鸿蒙美学** - 采用Material You设计语言，丰富的动画效果
-- 🧩 **模块化架构** - 清晰的分层架构，便于维护和扩展
-
-## 开发环境
-
-- **开发框架**: ArkTS + eTS
-- **目标系统**: HarmonyOS 5.0+
-- **支持设备**: 手机、平板、2合1设备
-- **开发工具**: DevEco Studio
-
-## 项目结构
-
-```
-├── entry/                          # 主模块
-│   ├── src/main/
-│   │   ├── ets/                    # 源代码
-│   │   │   ├── components/         # 组件
-│   │   │   │   ├── HighlightedText.ets    # 高亮文本组件
-│   │   │   │   ├── MarkdownPreview.ets    # Markdown预览组件
-│   │   │   │   └── SearchDialog.ets       # 搜索对话框
-│   │   │   ├── models/             # 数据模型
-│   │   │   │   └── FileModel.ets
-│   │   │   ├── pages/              # 页面
-│   │   │   │   └── CodeEditor.ets
-│   │   │   └── services/           # 服务层
-│   │   │       ├── FileService.ets
-│   │   │       ├── SyntaxHighlightService.ets
-│   │   │       ├── MarkdownService.ets
-│   │   │       ├── ThemeService.ets
-│   │   │       └── SearchService.ets
-│   │   ├── module.json5            # 模块配置
-│   │   └── resources/              # 资源文件
-│   └── build/                      # 构建输出
-├── AppScope/                       # 应用配置
-└── build-profile.json5            # 构建配置
-```
-
-## 运行方法
-
-### 方法1: DevEco Studio（推荐）
-1. 打开 DevEco Studio
-2. 选择 "Open" > 选择此项目文件夹
-3. 等待项目加载完成
-4. 点击运行按钮或按 `Ctrl + R` 运行应用
-
-### 方法2: 命令行构建
-```bash
-# 安装依赖
-npm install
-
-# 构建应用
-hvigorw assembleApp --mode debug
-
-# 生成HAP包
-hvigorw buildApp --mode debug
-```
-
-### 方法3: 设备安装
-```bash
-# 安装到设备（需要hdc工具）
-hdc install -r entry-default-signed.hap
-```
-
-## 使用说明
-
-### 基本操作
-1. **打开文件** - 点击文件树中的文件打开编辑
-2. **新建文件** - 点击工具栏的"新建文件"按钮
-3. **保存文件** - 点击工具栏的"保存"按钮
-4. **切换标签页** - 点击标签页进行切换
-5. **关闭标签页** - 点击标签页上的"×"按钮
-
-### 高级功能
-1. **Markdown预览** - 打开.md文件时自动启用预览模式
-2. **主题切换** - 点击工具栏的"主题"按钮切换主题
-3. **搜索功能** - 点击工具栏的"搜索"按钮进行全文搜索
-4. **文件树导航** - 点击文件夹展开/折叠，支持多层级浏览
-
-### 快捷键
-- `Ctrl + S` - 保存当前文件
-- `Ctrl + N` - 新建文件
-- `Ctrl + F` - 搜索
-- `Tab` - 插入制表符
-- `Shift + Tab` - 减少缩进
-
-## 开发状态
-
-- ✅ **Phase 1** - 基础框架搭建（完成）
-- ✅ **Phase 2** - 核心编辑功能（完成）
-- ✅ **Phase 3** - 高级功能开发（完成）
-- ✅ **代码优化** - 修复所有编译错误（完成）
-- ✅ **构建测试** - 应用可以成功编译（完成）
-
-## 技术架构
-
-### 架构分层
-```
-┌─────────────────────────────────────┐
-│           UI Layer                  │
-│   Pages + Components + Utils        │
-├─────────────────────────────────────┤
-│        Business Logic Layer         │
-│   Services (File, Theme, Search)    │
-├─────────────────────────────────────┤
-│         Data Layer                  │
-│   Models + Preferences + Storage    │
-├─────────────────────────────────────┤
-│       System APIs                   │
-│   FileSystem + UI + Network         │
-└─────────────────────────────────────┘
-```
-
-### 核心技术栈
-- **前端框架**: ArkTS + eTS
-- **UI组件**: 鸿蒙原生组件
-- **数据存储**: Preferences + 文件系统
-- **语法解析**: 自定义正则表达式引擎
-- **主题系统**: 动态颜色切换
-
-## 许可证
-
-MIT License
-
-## 作者
-
-Niki
+<p align="center">
+  <b>原生鸿蒙开源轻量代码编辑器 — 为 HarmonyOS 5 深度定制</b><br/>
+  <i>A native, lightweight code editor built from scratch for HarmonyOS 5.</i>
+</p>
 
 ---
 
-**鸿蒙原生代码编辑器现已完成，可以正常使用！** 🎊
+## 🎯 Why xxCode?
+
+> HarmonyOS 生态缺少一款真正原生的代码编辑器。<br/>
+> xxCode 用 ArkTS 从零构建，深度集成鸿蒙系统能力，给开发者一个在鸿蒙设备上写代码的选择。
+
+---
+
+## ✨ Features
+
+### Core Editor
+| Feature | Description |
+|---------|-------------|
+| 📑 **Multi-Tab** | 多标签页同时编辑多个文件 |
+| 🌲 **File Tree** | 树状文件导航，支持展开/折叠 |
+| 🎨 **Syntax Highlighting** | JS · TS · Python · Java · C++ · Go · Rust 等主流语言 |
+| 📝 **Markdown Preview** | 智能检测 Markdown，实时预览 |
+| 🔍 **Full-Text Search** | 搜索文件内容和文件名，带搜索建议 |
+| ⚙️ **Code Formatting** | 智能代码格式化和缩进管理 |
+
+### Experience
+| Feature | Description |
+|---------|-------------|
+| 🎭 **3 Themes** | 浅色 · 深色 · 鸿蒙原生主题切换 |
+| 🏗️ **Native HarmonyOS** | 深度集成鸿蒙系统能力，原生体验 |
+| ⚡ **High Performance** | 基于原生技术栈，启动快、占用低 |
+| 🧩 **Modular Architecture** | 清晰分层架构，易于扩展 |
+
+---
+
+## 📱 Supported Devices
+
+<table>
+  <tr>
+    <td align="center"><img src="https://img.shields.io/badge/📱_Phone-000?style=for-the-badge&logo=huawei&logoColor=white" /></td>
+    <td align="center"><img src="https://img.shields.io/badge/📟_Tablet-000?style=for-the-badge&logo=huawei&logoColor=white" /></td>
+    <td align="center"><img src="https://img.shields.io/badge/💻_2-in-1-000?style=for-the-badge&logo=huawei&logoColor=white" /></td>
+  </tr>
+</table>
+
+---
+
+## 📦 Tech Stack
+
+```
+Framework   → ArkTS + eTS
+Target OS   → HarmonyOS 5.0+
+IDE         → DevEco Studio
+Design      → Material You / HarmonyOS Design
+Language    → TypeScript
+```
+
+---
+
+## 🏗️ Project Structure
+
+```
+xxCode/
+├── AppScope/          # 应用级配置
+├── entry/             # 主模块
+│   └── src/
+│       └── main/
+│           └── ets/   # ArkTS 源码
+├── hvigor/            # 构建工具配置
+├── build.sh           # 构建脚本
+├── build-profile.json5 # 构建配置
+├── oh-package.json5   # 包管理
+└── code-linter.json5  # 代码规范
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **DevEco Studio** 5.0+
+- **HarmonyOS** SDK 5.0+
+
+### Build & Run
+
+```bash
+# 克隆项目
+git clone https://github.com/KeloYuan/xxCode.git
+
+# 用 DevEco Studio 打开项目
+# 或使用命令行构建
+./build.sh
+```
+
+### Development Phases
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 1 | ✅ Done | 基础框架搭建 |
+| Phase 2 | ✅ Done | 核心编辑功能 |
+| Phase 3 | ✅ Done | 高级功能开发 |
+| Phase 4 | ✅ Done | 代码优化 & 编译修复 |
+| Phase 5 | ✅ Done | 构建测试通过 |
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="元代码.png" width="80%" />
+</p>
+
+---
+
+## 📊 Star History
+
+<a href="https://star-history.com/#KeloYuan/xxCode&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=KeloYuan/xxCode&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=KeloYuan/xxCode&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=KeloYuan/xxCode&type=Date" width="100%" />
+ </picture>
+</a>
+
+---
+
+## 📄 License
+
+[MIT](LICENSE) © [Niki / KeloYuan](https://github.com/KeloYuan)
+
+---
+
+<p align="center">
+  <b>xxCode</b> — <i>Code on HarmonyOS, natively.</i><br/><br/>
+  ⭐ Star this repo if you believe in the HarmonyOS developer ecosystem!
+</p>
